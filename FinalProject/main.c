@@ -5,6 +5,7 @@
 
 main(int argc, char *argv[ ])   // run as a.out [diskname]
 {
+  char line[128], cmd[64], pathname[64];
   if (argc > 1)
      disk = argv[1];
 
@@ -78,14 +79,23 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      //printf("cmd=%s pathname=%s\n", cmd, pathname);
 
      // execute the cmd
-     if (strcmp(cmd, "ls")==0)
+     if (strcmp(cmd, "ls")==0){
         ls(pathname);
-     if (strcmp(cmd, "cd")==0)
+     }
+     if (strcmp(cmd, "cd")==0){
         chdir(pathname);
-     if (strcmp(cmd, "pwd")==0)
+     }
+     if (strcmp(cmd, "pwd")==0){
         //pwd(running->cwd);
-     if (strcmp(cmd, "quit")==0)
+     }
+     if (strcmp(cmd, "mkdir")==0){
+        printf("test");
+        mkkdir(pathname);
+       }
+     if (strcmp(cmd, "quit")==0){
         quit();
+     }
+     
    }
 }
 
@@ -134,11 +144,11 @@ int mount_root()
   ninodes = sp->s_inodes_count;
   ifree = sp->s_free_inodes_count;
 
-  get_block(dev, 2, buf);
-  gp = (GD *)buf;
+  // get_block(dev, 2, buf);
+  // gp = (GD *)buf;
 
-  imap = gp->bg_inode_bitmap;
-  bmap = gp->bg_block_bitmap;
+  // imap = gp->bg_inode_bitmap;
+  // bmap = gp->bg_block_bitmap;
 
   printf("mount_root()\n");
   root = iget(dev, 2);         // Do you understand this?

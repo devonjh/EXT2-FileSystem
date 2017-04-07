@@ -27,7 +27,7 @@ int start_block;
 
 
 char *disk = "mydisk";
-char line[128], cmd[64], pathname[64];
+//char line[128], cmd[64], pathname[64];
 //char buf[BLKSIZE];              // define buf1[ ], buf2[ ], etc. as you need
 
 /********** Functions as BEFORE ***********/
