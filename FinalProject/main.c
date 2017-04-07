@@ -1,6 +1,7 @@
 #include "util.c"  // YOUR iget_iput_getino.c file with
                                // get_block/put_block, tst/set/clr bit function
 #include "ls_cd_pwd.c"              
+#include "mkdir_creat.c"
 
 main(int argc, char *argv[ ])   // run as a.out [diskname]
 {
@@ -31,6 +32,8 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      
 
   //get ninodes, nblocks (and print their values)
+  ninodes = sp->s_inodes_count;
+  nblocks = sp->s_blocks_count;
   printf("ninodes = %d\n", sp->s_inodes_count);
   printf("nblocks = %d\n", sp->s_blocks_count);
 
@@ -38,6 +41,8 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
   //Read GD block to get bmap, imap, iblock (and print their values)
   get_block(fd, 2, buf);
   gp = (GD *)buf;
+  imap = gp->bg_inode_bitmap;
+  bmap = gp->bg_block_bitmap;
   printf("bg_block_bitmap: %d\n", gp->bg_block_bitmap);
   printf("bg_inode_bitmap: %d\n", gp->bg_inode_bitmap);
   start_block = gp->bg_inode_table;
@@ -128,6 +133,12 @@ int mount_root()
   bfree = sp->s_free_blocks_count;
   ninodes = sp->s_inodes_count;
   ifree = sp->s_free_inodes_count;
+
+  get_block(dev, 2, buf);
+  gp = (GD *)buf;
+
+  imap = gp->bg_inode_bitmap;
+  bmap = gp->bg_block_bitmap;
 
   printf("mount_root()\n");
   root = iget(dev, 2);         // Do you understand this?

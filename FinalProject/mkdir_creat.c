@@ -4,19 +4,22 @@
 #include "ls_cd_pwd.c"
 #include "alloc_dealloc.c"
 
-int mkdir(char *pathname){
-    char tempparent[BLKSIZE], tempchild[BLKSIZE];
+int mkkdir(char *pathname){
+    char tempbase[BLKSIZE], tempdir[BLKSIZE];
+    char *tempparent, *tempchild;
     int pino;
     MINODE *pip;
     strcpy(tempbase, pathname);
     strcpy(tempdir, pathname);
+
     tempparent = dirname(tempdir);
     tempchild = basename(tempbase);
 
     pino = getino(&dev, tempparent);
     pip = iget(dev, pino);
 
-
+    //run mymakedir which adds the actual file there:
+    mymkdir(pip, tempchild);
 
     //last step: put that dir(block) back to the disk: 
     iput(pip);
@@ -30,15 +33,16 @@ int mymkdir(MINODE *pip, char *name){
     int ino = ialloc(dev);
     int bno = balloc(dev);
 
-    mip = iget(dev, ino);
-    ip = &mip->INODE;
+    mip = iget(dev, ino);   //saving minode 
+    ip = &mip->INODE;   //faster referencing
 
+    //set everything to the directory settings:
     ip->i_mode = 0040775;
     ip->i_uid = running->uid;
-    ip->i_gid = running->gid;
+    ip->i_gid = running->pid;
     ip->i_size = BLKSIZE;
-    ip->link_count = 2;
-    ip->iatime = ip->i_ctime = ip->i_mtime = time(0L);
+    ip->i_links_count = 2;
+    ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);
     ip->i_block[0] = bno;
     
     for(int i = 1; i < 14; i++){
@@ -50,21 +54,38 @@ int mymkdir(MINODE *pip, char *name){
     iput(mip);
 
     //now lets create . and .. yuh yuh
+    get_block(dev,bno, buf);
 
+    cp = buf;
+    dp = (DIR *) buf;
+    strcpy(dp->name, ".");
+    dp->inode = ino;
+    dp->name_len = 1;
+    dp-> rec_len = (4 * ((8 + 1 + 3) / 4));
 
+    //move to ".." now:
+    cp += dp->rec_len;
+    dp = (DIR *)cp;
 
+    strcpy(dp->name, "..");
+    dp->inode = ino;
+    dp->name_len = 2;
+    dp-> rec_len = BLKSIZE - (4 * ((8 + 2 + 3) / 4));
+
+    enter_name(pip, ino, name);
+
+    return 1;
 }
 
 
 int enter_name(MINODE *pip, int myino, char *myname){
     int i = 0;
-
     char *blk, *cp;
     int need_len, ideal_last_len, rem;
     int bno;
 
-    for ( i = 0; i < (pip->INODE->i_size / BLKSIZE); i++){
-        if(pip->INODE->i_block[i] == 0){
+    for ( i = 0; i < (pip->INODE.i_size / BLKSIZE); i++){
+        if(pip->INODE.i_block[i] == 0){
             break;
         }
 
@@ -76,7 +97,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
         dp = (DIR *)buf;
 
         //go through last block:
-        blk = pip->INODe.i_block[i];
+        blk = pip->INODE.i_block[i];
         while(cp + dp->rec_len < buf + BLKSIZE){
             cp += dp->rec_len;
             dp = (DIR *) cp;
@@ -105,6 +126,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
         
 
     }    
+
     //need to allocate cuz no more data blocks:
 
     bno = balloc(dev);
@@ -122,7 +144,6 @@ int enter_name(MINODE *pip, int myino, char *myname){
     dp->name_len = strlen(myname);
 
     putblock(bno);
-    return 0;
-
+    return 1;
 }
 #endif

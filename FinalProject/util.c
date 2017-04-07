@@ -11,17 +11,7 @@
 
 #include "type.h"
 
-MINODE minode[NMINODE];
-MINODE *root;
-PROC   proc[NPROC], *running;
 
-int dev;
-int nblocks;
-int ninodes;
-int bmap;
-int imap;
-int iblock;
-int fd;
 char *cp;
 char buf[BLKSIZE];
 
