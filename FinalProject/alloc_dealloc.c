@@ -31,7 +31,7 @@ int balloc(int dev){
   char buff[BLKSIZE];
 
   //read inode_bitmap block:
-  get_block(dev, bmap, buf);
+  get_block(dev, bmap, buff);
   for (i=0; i < nblocks; i++){
     if (tst_bit(buff, i)==0){
        set_bit(buff,i);

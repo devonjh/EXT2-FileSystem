@@ -116,22 +116,94 @@ int chdir(char *pathname)
     //if mip->INODE is NOT a DIR: reject and print error message;
     if (!S_ISDIR(mip->INODE.i_mode)) {
         printf("%s is not a directory.\n",pathname);
+        iput(mip);
         return;
     }
 
     else {
       proc[0].cwd = mip;
+      iput(mip);
     }
-}   
+}    
  
-//int pwd(running->cwd){//: YOU WRITE CODE FOR THIS ONE!!!
-    /*
-    how to get to parent:
-        running->cwd->inode search for ".." and get that in block ".." is a parent.
-        use mailman's algorithm
-        save each string locally in a stack 
-        once you read the top, that is number 2 inode and go down recursively.
-    */
+int pwd(){//: YOU WRITE CODE FOR THIS ONE!!!
+      int tempINum, i = 0, parentINum;
+      int blk, disp;
+      char *childName;
+      char *tempPath;
+      char *cp;
+      char fullPath[64] = "/";
+      char tempName[64];
+      MINODE *mip;
+      MINODE *origCWD;
+      char *pwdArray[8] = {""};
+      //running->cwd->inode search for ".." and get that in block ".." is a parent.
+      origCWD = running->cwd;
+
+      if (running->cwd->ino == 2) {
+        printf("PWD: /");
+        return;
+      }
+
+      i = 0;
+      while (running->cwd->ino != 2) {    //Continue traversing parent Inodes until root is reached.
+        memset(&tempName[0], 0, sizeof(tempName));
+        mip = iget(dev, running->cwd->ino);
+        get_block(dev, mip->INODE.i_block[0],buf);
+        dp = (DIR *)buf;
+        tempINum = dp->inode;
+        //printf("iNum: %d\n",tempINum);
+
+
+        parentINum = search(mip, "..");   //Move to parent. 
+        //printf("parentINum: %d\n",parentINum);
+
+        mip = iget(dev, parentINum);
+        get_block(dev, mip->INODE.i_block[0],buf);
+        dp = (DIR *)buf;
+        cp = buf;
+
+        while (cp < &buf[BLKSIZE]) {
+          //printf("\ndp->inode: %d\n",dp->inode);
+          //printf("tempINum: %d\n",tempINum);
+          //printf("current name: %s\n",dp->name);
+          if (dp->inode == tempINum) {
+            strncpy(tempName, dp->name,64);
+            //printf("tempName: %s\n",tempName);
+            printf("i: %d\n",i);
+            pwdArray[i] = tempName;
+            printf("tempName: %s\n",pwdArray[i]);
+            i++;
+            break;
+          }
+
+          cp += dp->rec_len;
+          dp = (DIR *)cp;
+          
+        }
+
+        printf("pathArray[0]: %s\n",pwdArray[0]);
+        printf("loop.\n");
+        running->cwd = mip;
+      }    
+
+      //pwdArray[i] = 0;
+
+      i -= 1;
+      
+
+      printf("\n");
+      
+      while (i >= 0) {
+        printf("pwdArray[%d]: %s\n",i,pwdArray[i]);
+        i--;
+      }
+
+      running->cwd = origCWD;
+      printf("PWD:");
+      printf("%s\n",fullPath);
+      iput(mip);
+}
 int quit()
 {
     /*

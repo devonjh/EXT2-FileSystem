@@ -87,6 +87,7 @@ int mymkdir(MINODE *pip, char *name){
     printf("dp->ino: %d\n", dp->inode);
     printf("dp->reclen : %d\n", dp->rec_len);
 
+    put_block(dev, bno, buf);
     enter_name(pip, ino, name);
 
     return 1;

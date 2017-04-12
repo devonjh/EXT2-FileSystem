@@ -2,12 +2,16 @@
                                // get_block/put_block, tst/set/clr bit function
 #include "ls_cd_pwd.c"              
 #include "mkdir_creat.c"
+#include "rmdir.c"
+#include "link.c"
 
 main(int argc, char *argv[ ])   // run as a.out [diskname]
 {
-  char line[128], cmd[64], pathname[64];
-  if (argc > 1)
+    if (argc > 1)
      disk = argv[1];
+
+  printf("\n");
+  system("./diskcopy.sh");
 
   if ((dev = fd = open(disk, O_RDWR)) < 0){
      printf("open %s failed\n", disk);  
@@ -59,7 +63,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
   running->cwd = root; //set running's cwd   to point at / in memory;*/
   
   while(1){       // command processing loop
-     printf("input command : [ls|cd|pwd|quit] ");
+     printf("\ninput command : [ls|cd|pwd|mkdir|creat|link|rmdir|quit] ");
      memset(&pathname[0], 0, sizeof(pathname));
 
      //use fgets() to get user inputs into line[128]
@@ -86,12 +90,18 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
         chdir(pathname);
      }
      if (strcmp(cmd, "pwd")==0){
-        //pwd(running->cwd);
+        pwd(running->cwd);
      }
      if (strcmp(cmd, "mkdir")==0){
         printf("test");
         mkkdir(pathname);
-       }
+     }
+     if(strcmp(cmd, "link") == 0){
+       link(pathname, pathname2);
+     }
+     if(strcmp(cmd, "rmdir")==0){
+       rmdir(pathname);
+     }
      if (strcmp(cmd, "quit")==0){
         quit();
      }
