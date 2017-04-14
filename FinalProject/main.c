@@ -96,6 +96,9 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
         printf("test");
         mkkdir(pathname);
      }
+     if(strcmp(cmd, "creat")==0){
+       creat_file(pathname);
+     }
      if(strcmp(cmd, "link") == 0){
        link(pathname, pathname2);
      }
