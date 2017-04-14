@@ -67,6 +67,7 @@ int rmdir(char *pathname) {
         return -1;
     }
 
+    //rmchild(pip, name);
     //jjust faster references:
     iNode = &mip->INODE;
     pino = &pip->INODE;
@@ -81,6 +82,28 @@ int rmdir(char *pathname) {
     iput(pip);
 
     return 0;
+}
+
+int rmchild(MINODE *parent, char *name){
+    //faster ref
+    INODE *pino = &parent->INODE;
+    DIR *dp, prevdp;
+    char *cp;
+
+    for(int i = 0; i < 12; i++){
+        //check if theres something, if there is, rem it
+        if(pino->i_block[i] !=0){
+            get_block(parent->dev, pino->iblock[i], buf);
+            dp = (DIR *)buf;
+            cp = buf;
+
+            //lets search now:
+            while(cp < &buf[BLKSIZE]){
+                //... gotta go for the parent name now -_-:
+
+            }
+        }
+    }
 }
 
 #endif
