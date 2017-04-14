@@ -8,22 +8,27 @@ int rmdir(char *pathname) {
     //Variables
     int iNum, parentINum, testSize = 0;
     MINODE *mip, *pip;
+    INODE *iNode, *pino;
     char *cp;
 
     printf("%s\n",pathname);
 
     //INum of pathname.
-    iNum = getino(running->cwd->dev,pathname);
+    parentINum = getino(running->cwd->dev,pathname);
     printf("iNum: %d\n",iNum);
 
-    if (iNum == 0) {
+    if (parentINum == 0) {
         printf("Desired location not found.\n");
         iput(mip);
         return -1;
     }
 
-    //get mip for inode.
-    mip = iget(running->cwd->dev, iNum);
+    //get pip for inode.
+    pip = iget(running->cwd->dev, parentINum);
+    
+    //now inode:
+    iNum = search(pip);
+    mip =  iget(dev, iNum);
 
     //Check status of dir to make sure we can remove it.
 
@@ -61,6 +66,21 @@ int rmdir(char *pathname) {
         iput(mip);
         return -1;
     }
+
+    //jjust faster references:
+    iNode = &mip->INODE;
+    pino = &pip->INODE;
+    //deallocate blocks and the one inode removed:
+    bdealloc(dev,iNode,pino);
+    idealloc(dev,iNode);
+    //update:
+    mip->refCount = 0;
+
+    pip_atime = pip->i_ctime = pip->i_mtime = time(0L);
+    pip->dirty = 1;
+    iput(pip);
+
+    return 0;
 }
 
 #endif

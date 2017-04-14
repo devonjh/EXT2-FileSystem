@@ -250,7 +250,7 @@ int my_creat(MINODE *pip, char *name){
     //now lets put it in the from the parent:
     enter_creat_name(pip, ino, name);
 
-    return ino;
+    return 0;
 }
 
 int enter_creat_name(MINODE *pip, int myino, char *myname){
