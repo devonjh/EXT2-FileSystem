@@ -104,6 +104,9 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      if(strcmp(cmd, "link") == 0){
        link(pathname, pathname2);
      }
+     if(strcmp(cmd, "unlink")==0){
+       unlink(pathname);
+     }
      if(strcmp(cmd,"symlink")==0) {
        symlink(pathname, pathname2);
      }

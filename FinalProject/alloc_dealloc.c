@@ -42,7 +42,7 @@ int balloc(int dev){
        return i+1;
     }
   }
-  printf("ialloc(): no more free inodes\n");
+  printf("Balloc(): no more free inodes\n");
 }
 
 //clears the inode from given inode
@@ -55,11 +55,8 @@ int idealloc(int dev, int inode){
     //subtract it by 1, got removed:
     //set_bit(buff, inode - 1);
     clr_bit(buff, inode - 1);
-
-
     printf("Does it go here?\n");
     put_block(dev, imap, buff);
-
     //increase blocks:
     incFreeInodes(dev);
 }
@@ -104,5 +101,7 @@ int truncate(int dev, MINODE *mip){
             printf("1  ");
         }
     }
+    printf("free inodes\n");
+    
 }
 #endif

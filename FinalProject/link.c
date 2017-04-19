@@ -76,15 +76,19 @@ int link (char *oldName, char *newName) {
 }
 
 int unlink (char *pathname) {
-    MINODE *mip, *pip;
+    //Variables
+    int testSize = 0, tempparentdir;
+    MINODE *mip;
     INODE *iNode, *piNode;
     char *cp;
     char tempbase[BLKSIZE], tempdir[BLKSIZE];
     char *tempparent, *tempchild;
-
+    MINODE *pip;
     strcpy(tempbase, pathname);
     strcpy(tempdir, pathname);
 
+    //INum of pathname.
+    //parentINum = getino(running->cwd->dev,pathname);
     tempparent = dirname(tempdir);
     tempchild = basename(tempbase);
     if(pathname[0] == '/'){
@@ -94,15 +98,21 @@ int unlink (char *pathname) {
     else{
         dev = running->cwd->dev;
     }
+
+
     printf("parent: %s   child: %s   \n", tempparent, tempchild);
     if(strcmp(tempparent,".")==0){
         pino = running->cwd->ino;
         pip = iget(dev,running->cwd->ino);
     }
+
+    
     //grab the parent's inode:
+    //pino = getino(dev, tempparent);
     else{
         pip = iget(dev, pino);
     }
+    
     if (pip == 0) {
         printf("Desired location not found.\n");
         iput(mip);
@@ -121,17 +131,32 @@ int unlink (char *pathname) {
     }
 
     printf("MIP INODE: %d\n", ino);
+
+    mip->INODE.i_links_count -= 1;
+
     if(mip->INODE.i_links_count==0){
         truncate(dev,mip);
         printf("No more links with this file, deallocating:\n");
+        //incFreeInodes(dev);
+        //BASICALLY TRUNCATE: 
+        // for(int i = 0; i < 12; i++){
+        //     if(mip->INODE.i_block[i] !=0){
+        //         printf("does it go here\n");
+        //         int tempparentdir = pip->INODE.i_block[i];
+        //         mip->INODE.i_block[i] = 0;
+        //         //now free the parent's dir:
+        //         freeblock(dev, tempparentdir);
+        //     }
+
+        // }
+        //free the inode:
+        idealloc(dev,ino);
     }
 
     rmchild(pip, tempchild);
 
     pip->INODE.i_atime = pip->INODE.i_ctime = pip->INODE.i_mtime = time(0L);
-    mip->INODE.i_links_count -= 1;
     mip->dirty = 1;
-    
     pip->dirty = 1;
     iput(&pip->INODE);
     iput(&mip->INODE);

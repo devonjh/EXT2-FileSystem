@@ -93,11 +93,13 @@ int incFreeInodes(int dev)
   get_block(dev, 1, buf);
   sp = (SUPER *)buf;
   sp->s_free_inodes_count++;
+  printf("superblock size: %d\n", sp->s_free_inodes_count);
   put_block(dev, 1, buf);
 
   get_block(dev, 2, buf);
   gp = (GD *)buf;
   gp->bg_free_inodes_count++;
+  printf("group discriptor size: %d\n", gp->bg_free_inodes_count);
   put_block(dev, 2, buf);
 }
 
