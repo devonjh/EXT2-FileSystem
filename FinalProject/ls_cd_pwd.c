@@ -40,6 +40,7 @@ int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code
     printf("iNum\trec_len\tname_len\tFile Name\n"); 
 
     while (tempCP < &tempBuf[BLKSIZE]) {
+      
       strncpy(tempName, dp->name, dp->name_len);
       tempName[dp->name_len] = 0;   //get rid of null terminating character.
 

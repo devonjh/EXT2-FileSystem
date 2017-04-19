@@ -119,11 +119,22 @@ int unlink (char *pathname) {
         iput(mip);
         return -1;
     }
-    
+
+    printf("MIP INODE: %d\n", ino);
+    if(mip->INODE.i_links_count==0){
+        truncate(dev,mip);
+        printf("No more links with this file, deallocating:\n");
+    }
+
     rmchild(pip, tempchild);
+
     pip->INODE.i_atime = pip->INODE.i_ctime = pip->INODE.i_mtime = time(0L);
+    mip->INODE.i_links_count -= 1;
+    mip->dirty = 1;
+    
     pip->dirty = 1;
     iput(&pip->INODE);
+    iput(&mip->INODE);
 }
 
 int showLinks (char *pathname) {
@@ -145,70 +156,27 @@ int showLinks (char *pathname) {
 }
 
 int symlink(char *oldName, char *newName){
-    int oldINODE, newINODE;
-    MINODE *oldMIP, *newMIP;
-    char tempDir[64];
-    char tempBase[64];
-    char tempPathCpy[64];
-    char *dirPath, *basePath;
-    char *cp;
-    
-    printf("oldname: %s\n",oldName);
-    printf("newName: %s\n",newName);
+    int oldino, newino, creat_test;
+    MINODE *omip, *nmip;
+    char *basePath, *dirPath;
 
-    oldINODE = getino(dev, oldName);              //getIno and mip pointer for 'oldname' path.
-    printf("oldINODE: %d\n",oldINODE);
-    oldMIP = iget(dev, oldINODE);
-
-    printf("Original pathname located.\n");
-
-    strncpy(tempDir,newName,64);                                  //convert newpath to dirname to find potential location of new file.
-    dirPath = dirname(tempDir);
-    printf("dirPath: %s\n",dirPath);
-
-    newINODE = getino(dev, dirPath);              //Get inode and mip of the location for the new link file.           
-    printf("newINODE: %d\n",newINODE);
-    newMIP = iget(dev, newINODE);
-
-    strncpy(tempBase,newName,64);                               //Get baseName of newName to search if it already exists.
-    basePath = basename(tempBase);
-
-    get_block(dev, newMIP->INODE.i_block[0], buf);
-    dp = (DIR *)buf;
-    cp = buf;
-
-    printf("basePath: %s\n",basePath);
-
-    //search through dir:
-    while (cp < &buf[BLKSIZE]) {
-        //printf("dp->name: %s\n",dp->name);
-        if (strcmp(dp->name, basePath) == 0) {
-            printf("Desired file already exists. Cannot create link.\n");
-            iput(oldMIP);
-            iput(newMIP);
-            return -1;
-        }
-
-        cp += dp->rec_len;
-        dp = (DIR *)cp;
+    oldino = getino(running->cwd->dev, oldName);
+    if(oldino ==0){
+        printf("exists\n");
+        return -1;
     }
 
-    strcpy(tempPathCpy, tempBase);
-    strcat(tempPathCpy, " -> ");
-    strcat(tempPathCpy, tempDir);
-    printf("Tempname: %s\n", tempPathCpy);
-    enter_sym_name(newMIP, oldINODE, tempBase);
+    omip = iget(dev, oldino);
+    creat_file(newName);
 
-    oldMIP->INODE.i_links_count += 1;
-    oldMIP->dirty = 1;
-    printf("Links Count: %d\n",oldMIP->INODE.i_links_count);
-    printf("New Links Count: %d\n",newMIP->INODE.i_links_count);
-
-    put_block(dev, oldMIP->ino, buf);           //Not Writing Inode back.
-    //MINODE *newiNode = iget(dev, oldMIP);
-    
-    iput(oldMIP);
-    iput(newMIP);
+    newino = getino(dev, newName);
+    nmip = iget(dev, newino);
+    INODE *nino = &nmip->INODE;
+    nmip->dirty = 1;
+    nmip->refCount ++;
+    nino->i_links_count++;
+    nino->i_mode = 0xA1A4;
+    nino->i_size = strlen(oldName);
     return 0;
 }
 

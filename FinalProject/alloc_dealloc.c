@@ -94,7 +94,15 @@ int freeblock(int dev, int blockindex){
 
 
 
-int truncate(int dev, MINODE *mip){
-
+int bdealloc(int dev, MINODE *mip){
+  for(int i = 0; i < 12; i++){
+        if(mip->INODE.i_block[i] !=0){
+            int tempparentdir = mip->INODE.i_block[i];
+            mip->INODE.i_block[i] = 0;
+            //now free the parent's dir:
+            freeblock(dev, tempparentdir);
+            printf("1  ");
+        }
+    }
 }
 #endif
