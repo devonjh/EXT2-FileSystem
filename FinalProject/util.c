@@ -27,7 +27,7 @@ int start_block;
 
 
 char *disk = "mydisk";
-char line[128], cmd[64], pathname[64], pathname2[64];
+char line[128], cmd[64], pathname[64], pathname2[64], pathname3[64];
 //char buf[BLKSIZE];              // define buf1[ ], buf2[ ], etc. as you need
 
 /********** Functions as BEFORE ***********/
@@ -137,7 +137,8 @@ MINODE *iget(int dev, int ino)
   }
 
   printf("UH OH. No remaning minodes.\n");
-  exit(1);
+  return 0;
+  //exit(1);
 }
 
 int iput(MINODE *mip){ //dispose of a minode[] pointed by mip
@@ -246,6 +247,18 @@ int getino(int *dev, char *pathname)
   }
 
   return tempInum;
+}
+
+void printSize(char *pathname) {
+  int iNum;
+  MINODE *mip;
+
+  iNum = getino(running->cwd->dev,pathname);
+  printf("iNum: %d\n",iNum);
+
+  mip = iget(running->cwd->dev, iNum);
+
+  printf("File Size: %d\n",mip->INODE.i_size);
 }
 
 

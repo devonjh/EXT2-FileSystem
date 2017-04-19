@@ -49,6 +49,59 @@ int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code
       tempCP += dp->rec_len;
       dp = (DIR *)tempCP;
     }
+
+    //actual ls:
+    for(int i = 0; i <= 11; i++){
+      get_block(dev, mip->INODE.i_block[i], buf);
+      cp = buf;
+      dp = (DIR *) buf;
+
+      while(cp < BLKSIZE){
+        strncpy(tempName, dp->name, dp->name_len);
+        tempName[dp->name_len] = 0;   //get rid of null terminating character.
+        mip = iget(dev, dp->inode);
+        //now print everything:
+        /*if ((sp->st_mode & 0xF000) == 0x8000)
+          printf("%c",'-');
+          if ((sp->st_mode & 0xF000) == 0x4000)
+            printf("%c",'d');
+          if ((sp->st_mode & 0xF000) == 0xA000)
+            printf("%c",'l');
+
+          for (i=8; i >= 0; i--){
+            if (sp->st_mode & (1 << i))
+          printf("%c", t1[i]);
+            else
+          printf("%c", t2[i]);
+          }
+
+          printf("%4d ",sp->st_nlink);
+          printf("%4d ",sp->st_gid);
+          printf("%4d ",sp->st_uid);
+          printf("%8d ",sp->st_size);
+
+          // print time
+          strcpy(ftime, ctime(&sp->st_ctime));
+          ftime[strlen(ftime)-1] = 0;
+          printf("%s  ",ftime);*/
+       if(!S_ISDIR(mip->INODE.i_mode)){
+          printf("D");
+       }
+       if(!S_ISREG(mip->INODE.i_mode)){
+          printf("R");
+       }
+       if((mip->INODE.i_mode & 0xA000)== 0xA00){
+         printf(" -> %s", (char *) mip->INODE.i_blocks);
+       }
+       else{
+         printf("-");
+       }
+
+
+       cp += dp->rec_len;
+       dp = (DIR *) cp;
+      }
+    }
   }
 
   else {
@@ -212,9 +265,16 @@ int quit()
           write its INODE back to disk; 
           if dirty, write it back out in disk
   }*/
+  // for(int i = 0; i < ninodes; i++){
+  //   if(minode[i].refCount > 0 && minode[i].dirty == 1){
+  //     minode[i].refCount = 1;
+  //     iput(&minode[i]);
+  //   }
+  // }
+
+  exit(1);  // terminate program
   return 0;
   
-  exit(1);  // terminate program
 }
 
 #endif

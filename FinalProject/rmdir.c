@@ -29,6 +29,8 @@ int rmdir(char *pathname) {
     else{
         dev = running->cwd->dev;
     }
+
+
     printf("parent: %s   child: %s   \n", tempparent, tempchild);
     if(strcmp(tempparent,".")==0){
         pino = running->cwd->ino;
@@ -188,10 +190,8 @@ int rmchild(MINODE *parent, char *name){
                         if(tempparentblock + dp-> rec_len == BLKSIZE){
                             prevdp-> rec_len += remainblock;
                             put_block(dev, piNode->i_block[i], buf);
-                            return 0;
+                            return 1;
                         }
-                    
-                        
                         printf("Next inode entry: %s  ", dp->name);
                         //next entry pls:
                         cp += dp->rec_len;
@@ -202,14 +202,10 @@ int rmchild(MINODE *parent, char *name){
                         tempparentblock += prevdp->rec_len;
                         prevdp = (DIR*) cp;
                         printf("Previous iode entry: %s\n", dp->name);
-                    
-
                     }
-                    
                 }
                 prevdp = dp;
-
-                //next entry pls::
+                //next entry pls:
                 cp += dp->rec_len;
                 blockindex += dp->rec_len;
                 dp = (DIR *)cp;

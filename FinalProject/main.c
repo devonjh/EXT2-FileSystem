@@ -7,6 +7,8 @@
 
 main(int argc, char *argv[ ])   // run as a.out [diskname]
 {
+  int tempMode;
+
     if (argc > 1)
      disk = argv[1];
 
@@ -77,10 +79,10 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
        continue;
      }
 
-     sscanf(line,"%s %s",cmd, pathname);
+     sscanf(line,"%s %s %s %s",cmd, pathname, pathname2, pathname3);
 
      //Use sscanf() to extract cmd[ ] and pathname[] from line[128]
-     //printf("cmd=%s pathname=%s\n", cmd, pathname);
+     printf("cmd=%s pathname=%s\n", cmd, pathname);
 
      // execute the cmd
      if (strcmp(cmd, "ls")==0){
@@ -96,14 +98,47 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
         printf("test");
         mkkdir(pathname);
      }
-     if(strcmp(cmd, "creat")==0){
-       creat_file(pathname);
-     }
      if(strcmp(cmd, "link") == 0){
        link(pathname, pathname2);
      }
+     if(strcmp(cmd, "unlink")==0){
+       unlink(pathname);
+     }
+     if(strcmp(cmd, "symlink")==0){
+       symlink(pathname, pathname2);
+     }
      if(strcmp(cmd, "rmdir")==0){
        rmdir(pathname);
+     }
+     if(strcmp(cmd, "creat")==0){
+       creat_file(pathname);
+     }
+    //  if(strcmp(cmd,"open")==0) {
+    //    openFile(pathname,atoi(pathname2));
+    //  }
+    //  if(strcmp(cmd,"close")==0) {
+    //    closeFile(atoi(pathname));
+    //  }
+    //  if(strcmp(cmd,"pfd")==0) {
+    //    pfd();
+    //  }
+    //  if(strcmp(cmd,"lseek")==0) {
+    //    lseekFD(atoi(pathname),atoi(pathname2));
+    //  }
+    //  if(strcmp(cmd,"read")==0) {
+    //    myRead(atoi(pathname),buf, atoi(pathname2));
+    //  }
+    //  if(strcmp(cmd,"printSize")==0) {
+    //    printSize(pathname);
+    //  }
+    //  if(strcmp(cmd,"touch")==0) {
+    //    touch(pathname);
+    //  }
+    //  if(strcmp(cmd, "stat")==0) {
+    //    statFile(pathname);
+    //  }
+     if(strcmp(cmd,"showLinks")==0) {
+       showLinks(pathname);
      }
      if (strcmp(cmd, "quit")==0){
         quit();
@@ -111,6 +146,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      
    }
 }
+
 
 
 int init()

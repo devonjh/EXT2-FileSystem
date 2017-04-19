@@ -4,14 +4,14 @@
 #include "ls_cd_pwd.c"
 #include "alloc_dealloc.c"
 
-int pino;
+int pino, checkerino;
 
 int mkkdir(char *pathname){
     //makes sure that i can paarse in the parent name nad child name. childname will be the one created.
     
     char tempbase[BLKSIZE], tempdir[BLKSIZE];
     char *tempparent, *tempchild;
-    MINODE *pip;
+    MINODE *pip, *mip;
     strcpy(tempbase, pathname);
     strcpy(tempdir, pathname);
 
@@ -21,29 +21,55 @@ int mkkdir(char *pathname){
     if(pathname[0] == '/'){
         dev = root->dev;
         pino = getino(dev, tempparent);
+        pip = iget(dev,pino);
+        if(pino == 0){
+            printf("Does not exist sorry\n");
+            return 0;
+        }
     }
     else{
         dev = running->cwd->dev;
-    }
-    printf("parent: %s   child: %s   \n", tempparent, tempchild);
-    if(strcmp(tempparent,".")==0){
         pino = running->cwd->ino;
-        pip = iget(dev,running->cwd->ino);
+        
+        pip = iget(dev, pino);
+        checkerino = search(pip, tempparent);
+        if(checkerino == 0){
+            printf("not found \n");
+            return 0;
+        }
     }
-
-    
+    // if(strcmp(tempparent,".")==0){
+    //     // strcpy(tempparent, "/");
+    //     // printf("parent name: %s\n", tempparent);
+    //     pino = running->cwd->ino;
+    //     pip = iget(dev,running->cwd->ino);
+    // }
     //grab the parent's inode:
     //pino = getino(dev, tempparent);
-    else{
-        pip = iget(dev, pino);
+    // else{
+    //     pip = iget(dev, pino);
+    // }
+    if(pip == 0){
+        printf("Desired location not found. \n");
+        return -1;
     }
+    printf("parent: %s   child: %s   \n", tempparent, tempchild);
     //still gotta verify if it exists in the parent directory lmao:
-    printf("parent's mnode: %d\n", pino);
-
+    //checkerino = search(pip, tempparent);
+    // if(checkerino == 0){
+    //     printf("Can't find file\n");
+    //     return -1;
+    // }
+    // mip = iget(dev,checkerino);
+    // if(!S_ISREG(mip->INODE.i_mode)){
+    //     printf("Not in dir.\n");
+    //     return -1;
+    // }
     //run mymakedir which adds the actual file there:
     mymkdir(pip, tempchild);
 
     //last step: put that dir(block) back to the disk: 
+    pip->dirty =  1;
     iput(pip);
 }
 
@@ -92,6 +118,7 @@ int mymkdir(MINODE *pip, char *name){
     printf("dp->name_len: %d\n", dp->name_len);
     printf("dp->ino: %d\n", dp->inode);
     printf("dp->reclen : %d\n", dp->rec_len);
+    put_block(dev, ino, buf);
     //move to ".." now:
     cp += dp->rec_len;
     dp = (DIR *)cp;
@@ -112,7 +139,7 @@ int mymkdir(MINODE *pip, char *name){
 }
 
 
-int enter_name(MINODE *pip, int myino, char *myname){
+int enter_sym_name(MINODE *pip, int myino, char *myname){
     int i = 0;
     int need_len, ideal_last_len, rem;
     int bno;
@@ -123,7 +150,8 @@ int enter_name(MINODE *pip, int myino, char *myname){
     pip->INODE.i_links_count += 1;
 
     //each data block of parent needs to get across:
-    for ( i = 0; i < (pip->INODE.i_size / BLKSIZE); i++){
+    for ( i = 0; i < 12; i++){
+        //no more space?
         if(pip->INODE.i_block[i] == 0){
             break;
         }
@@ -142,6 +170,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
             cp += dp->rec_len;
             dp = (DIR *) cp;
         }
+        printf("Last entry name: %s\n\n", dp->name);
         //printf("Does it go to the last block? dp should be last entry\n");
         //now will be pointing at last block
         need_len = 4*((8 + strlen(myname) + 3)/4);
@@ -151,12 +180,14 @@ int enter_name(MINODE *pip, int myino, char *myname){
         printf("reclen: %d   need: %d   rem: %d\n", dp->rec_len, need_len, rem);
         //there are available blocks:
         if(rem >= need_len){
-            dp->rec_len = need_len;
+            dp->rec_len = ideal_last_len;
+            printf("Last entry name: %s\n\n", dp->name);
             cp += dp->rec_len;
             dp = (DIR *)cp;
-            strcpy(dp->name, myname);
+            strncpy(dp->name, myname, strlen(myname));
             dp->inode = myino;
             dp->rec_len = BLKSIZE - (cp - buf);
+            dp->file_type = 7;
             dp->name_len = strlen(myname);
             
             put_block(dev, pip->INODE.i_block[i], buf);
@@ -171,15 +202,99 @@ int enter_name(MINODE *pip, int myino, char *myname){
     pip->INODE.i_block[i] = balloc(dev);
     //pip->INODE.i_block[i] = bno;
     pip->INODE.i_size += BLKSIZE;
+    pip->INODE.i_blocks += BLKSIZE / 512;
     pip->dirty = 1;
 
     get_block(dev, pip->INODE.i_block[i], buf);
     cp = buf;
     dp = (DIR *) buf;
 
-    strcpy(dp->name, myname);
+    strncpy(dp->name, myname, strlen(myname));
     dp->inode = myino;
-    dp->rec_len = BLKSIZE - (cp - buf);
+    //dp->rec_len = BLKSIZE - (cp - buf);
+    dp->rec_len = BLKSIZE;
+    dp->file_type = 7;
+    dp->name_len = strlen(myname);
+
+    put_block(dev, pip->INODE.i_block[i], buf);
+    return 1;
+}
+
+int enter_name(MINODE *pip, int myino, char *myname){
+    int i = 0;
+    int need_len, ideal_last_len, rem;
+    int bno;
+
+    printf("name inserting: %s\n", myname);
+    printf("inode's size: %d\n", pip->INODE.i_size);
+    //need to add the file count thoo:
+    pip->INODE.i_links_count += 1;
+
+    //each data block of parent needs to get across:
+    for ( i = 0; i < 12; i++){
+        //no more space?
+        if(pip->INODE.i_block[i] == 0){
+            break;
+        }
+
+        //bno = pip->INODE.i_block[i];
+
+        //grab parent's data in a buf:
+        get_block(dev, pip->INODE.i_block[i], buf);
+
+        cp = buf;
+        dp = (DIR *)buf;
+
+        //go through last block:
+        while(cp + dp->rec_len < buf + BLKSIZE){
+            printf("%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, dp->name);
+            cp += dp->rec_len;
+            dp = (DIR *) cp;
+        }
+        printf("Last entry name: %s\n\n", dp->name);
+        //printf("Does it go to the last block? dp should be last entry\n");
+        //now will be pointing at last block
+        need_len = 4*((8 + strlen(myname) + 3)/4);
+
+        ideal_last_len = 4*((8 + dp->name_len + 3)/4);
+        rem = dp->rec_len - ideal_last_len;
+        printf("reclen: %d   need: %d   rem: %d\n", dp->rec_len, need_len, rem);
+        //there are available blocks:
+        if(rem >= need_len){
+            dp->rec_len = ideal_last_len;
+            printf("Last entry name: %s\n\n", dp->name);
+            cp += dp->rec_len;
+            dp = (DIR *)cp;
+            strncpy(dp->name, myname, strlen(myname));
+            dp->inode = myino;
+            dp->rec_len = BLKSIZE - (cp - buf);
+            dp->file_type = 2;
+            dp->name_len = strlen(myname);
+            
+            put_block(dev, pip->INODE.i_block[i], buf);
+            return 1;
+        }
+    }    
+
+    //need to allocate cuz no more data blocks , i < available blcoks:
+
+    printf("does it put here??\n");
+    printf("i = %d\n", i);
+    pip->INODE.i_block[i] = balloc(dev);
+    //pip->INODE.i_block[i] = bno;
+    pip->INODE.i_size += BLKSIZE;
+    pip->INODE.i_blocks += BLKSIZE / 512;
+    pip->dirty = 1;
+
+    get_block(dev, pip->INODE.i_block[i], buf);
+    cp = buf;
+    dp = (DIR *) buf;
+
+    strncpy(dp->name, myname, strlen(myname));
+    dp->inode = myino;
+    //dp->rec_len = BLKSIZE - (cp - buf);
+    dp->rec_len = BLKSIZE;
+    dp->file_type = 2;
     dp->name_len = strlen(myname);
 
     put_block(dev, pip->INODE.i_block[i], buf);
@@ -238,7 +353,7 @@ int my_creat(MINODE *pip, char *name){
     ip->i_uid = running->uid;
     ip->i_gid = running->pid;
     ip->i_size = 0;             //no data blocks so size is 0
-    ip->i_links_count = 1;      //cuz a file 
+    ip->i_links_count = 0;      //cuz a file 
     ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);
     ip->i_block[0] = bno;
     
@@ -293,11 +408,12 @@ int enter_creat_name(MINODE *pip, int myino, char *myname){
         printf("reclen: %d   need: %d   rem: %d\n", dp->rec_len, need_len, rem);
         //there are available blocks:
         if(rem >= need_len){
-            dp->rec_len = need_len;
+            dp->rec_len = ideal_last_len;
             cp += dp->rec_len;
             dp = (DIR *)cp;
             strcpy(dp->name, myname);
             dp->inode = myino;
+            dp->file_type = 1;
             dp->rec_len = BLKSIZE - (cp - buf);
             dp->name_len = strlen(myname);
             
@@ -321,6 +437,7 @@ int enter_creat_name(MINODE *pip, int myino, char *myname){
 
     strcpy(dp->name, myname);
     dp->inode = myino;
+    dp->file_type = 1;
     dp->rec_len = BLKSIZE - (cp - buf);
     dp->name_len = strlen(myname);
 
