@@ -94,7 +94,7 @@ int freeblock(int dev, int blockindex){
 
 
 
-int bdealloc(int dev, MINODE *mip){
+int truncate(int dev, MINODE *mip){
   for(int i = 0; i < 12; i++){
         if(mip->INODE.i_block[i] !=0){
             int tempparentdir = mip->INODE.i_block[i];

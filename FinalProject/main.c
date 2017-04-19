@@ -4,6 +4,9 @@
 #include "mkdir_creat.c"
 #include "rmdir.c"
 #include "link.c"
+#include "open.c"
+#include "read.c"
+#include "stat_chmod_touch.c"
 
 main(int argc, char *argv[ ])   // run as a.out [diskname]
 {
@@ -65,7 +68,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
   running->cwd = root; //set running's cwd   to point at / in memory;*/
   
   while(1){       // command processing loop
-     printf("\ninput command : [ls|cd|pwd|mkdir|creat|link|rmdir|quit] ");
+     printf("\ninput command : [ls|cd|pwd|mkdir|touch|stat|creat|link|symlink|rmdir|open|close|lseek|read|quit] ");
      memset(&pathname[0], 0, sizeof(pathname));
 
      //use fgets() to get user inputs into line[128]
@@ -82,7 +85,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      sscanf(line,"%s %s %s %s",cmd, pathname, pathname2, pathname3);
 
      //Use sscanf() to extract cmd[ ] and pathname[] from line[128]
-     printf("cmd=%s pathname=%s\n", cmd, pathname);
+     //printf("cmd=%s pathname=%s\n", cmd, pathname);
 
      // execute the cmd
      if (strcmp(cmd, "ls")==0){
@@ -101,42 +104,39 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      if(strcmp(cmd, "link") == 0){
        link(pathname, pathname2);
      }
-     if(strcmp(cmd, "unlink")==0){
-       unlink(pathname);
-     }
-     if(strcmp(cmd, "symlink")==0){
+     if(strcmp(cmd,"symlink")==0) {
        symlink(pathname, pathname2);
      }
      if(strcmp(cmd, "rmdir")==0){
        rmdir(pathname);
      }
-     if(strcmp(cmd, "creat")==0){
+     if(strcmp(cmd,"open")==0) {
+       openFile(pathname,atoi(pathname2));
+     }
+     if(strcmp(cmd,"close")==0) {
+       closeFile(atoi(pathname));
+     }
+     if(strcmp(cmd,"pfd")==0) {
+       pfd();
+     }
+     if(strcmp(cmd,"lseek")==0) {
+       lseekFD(atoi(pathname),atoi(pathname2));
+     }
+     if(strcmp(cmd,"read")==0) {
+       myRead(atoi(pathname),buf, atoi(pathname2));
+     }
+     if (strcmp(cmd,"creat")==0) {
        creat_file(pathname);
      }
-    //  if(strcmp(cmd,"open")==0) {
-    //    openFile(pathname,atoi(pathname2));
-    //  }
-    //  if(strcmp(cmd,"close")==0) {
-    //    closeFile(atoi(pathname));
-    //  }
-    //  if(strcmp(cmd,"pfd")==0) {
-    //    pfd();
-    //  }
-    //  if(strcmp(cmd,"lseek")==0) {
-    //    lseekFD(atoi(pathname),atoi(pathname2));
-    //  }
-    //  if(strcmp(cmd,"read")==0) {
-    //    myRead(atoi(pathname),buf, atoi(pathname2));
-    //  }
-    //  if(strcmp(cmd,"printSize")==0) {
-    //    printSize(pathname);
-    //  }
-    //  if(strcmp(cmd,"touch")==0) {
-    //    touch(pathname);
-    //  }
-    //  if(strcmp(cmd, "stat")==0) {
-    //    statFile(pathname);
-    //  }
+     if(strcmp(cmd,"printSize")==0) {
+       printSize(pathname);
+     }
+     if(strcmp(cmd,"touch")==0) {
+       touch(pathname);
+     }
+     if(strcmp(cmd, "stat")==0) {
+       statFile(pathname);
+     }
      if(strcmp(cmd,"showLinks")==0) {
        showLinks(pathname);
      }
