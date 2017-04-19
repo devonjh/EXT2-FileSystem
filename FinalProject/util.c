@@ -85,6 +85,23 @@ int decFreeInodes(int dev)
   put_block(dev, 2, buf);
 }
 
+int incFreeInodes(int dev)
+{
+  char buf[BLKSIZE];
+
+  // inc free inodes count in SUPER and GD
+  get_block(dev, 1, buf);
+  sp = (SUPER *)buf;
+  sp->s_free_inodes_count++;
+  put_block(dev, 1, buf);
+
+  get_block(dev, 2, buf);
+  gp = (GD *)buf;
+  gp->bg_free_inodes_count++;
+  put_block(dev, 2, buf);
+}
+
+
 MINODE *iget(int dev, int ino)
 {
   //declare local variables needed:

@@ -67,6 +67,7 @@ int mymkdir(MINODE *pip, char *name){
     ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);
     ip->i_block[0] = bno;
     
+    //set everything after the first block to 0, since it'll be empty neways'
     for(int i = 1; i < 14; i++){
         ip->i_block[i] = 0;
     }
@@ -105,6 +106,7 @@ int mymkdir(MINODE *pip, char *name){
     printf("dp->reclen : %d\n", dp->rec_len);
 
     put_block(dev, bno, buf);
+    //put in name:
     enter_name(pip, ino, name);
     return 1;
 }
@@ -280,6 +282,7 @@ int enter_creat_name(MINODE *pip, int myino, char *myname){
             printf("%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, dp->name);
             cp += dp->rec_len;
             dp = (DIR *) cp;
+            printf("last block's name: %s\n", dp->name);
         }
         //printf("Does it go to the last block? dp should be last entry\n");
         //now will be pointing at last block
