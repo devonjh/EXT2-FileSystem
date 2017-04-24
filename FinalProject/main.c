@@ -6,6 +6,7 @@
 #include "link.c"
 #include "open.c"
 #include "read.c"
+#include "write.c"
 #include "stat_chmod_touch.c"
 
 main(int argc, char *argv[ ])   // run as a.out [diskname]

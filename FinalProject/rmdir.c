@@ -155,7 +155,6 @@ int rmchild(MINODE *parent, char *name){
                         }
                         //keep it if it aint soloo:
                         else{
-                            
                             prevdp->rec_len += dp-> rec_len;
                             put_block(dev,piNode->i_block[i],buf);
                             return 1;

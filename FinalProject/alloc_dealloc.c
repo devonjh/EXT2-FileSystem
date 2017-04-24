@@ -89,8 +89,6 @@ int freeblock(int dev, int blockindex){
   incFreeInodes(dev);
 }
 
-
-
 int truncate(int dev, MINODE *mip){
   for(int i = 0; i < 12; i++){
         if(mip->INODE.i_block[i] !=0){

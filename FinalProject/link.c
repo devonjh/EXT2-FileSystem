@@ -192,15 +192,16 @@ int symlink(char *oldName, char *newName){
     }
 
     omip = iget(dev, oldino);
-    creat_file(newName);
+    creat_sym_file(newName);
 
+    printf("Newfile: %s\n", oldName);
     newino = getino(dev, newName);
     nmip = iget(dev, newino);
     INODE *nino = &nmip->INODE;
     nmip->dirty = 1;
     nmip->refCount ++;
     nino->i_links_count++;
-    nino->i_mode = 0xA1A4;
+    //nino->i_mode = 0xA1A4;
     nino->i_size = strlen(oldName);
     return 0;
 }
