@@ -14,6 +14,8 @@
 
 char *cp;
 char buf[BLKSIZE];
+char readBuf[BLKSIZE];
+char writeBuf[BLKSIZE];
 
 // global variables
 
@@ -192,6 +194,7 @@ int search(MINODE *mip, char *name)
 
 int getino(int *dev, char *pathname)
 {
+  //variables:
   int i, ino, blk, disp, n, tempInum, pathSize = 0;
   char  *name[128];
   char *tempname;

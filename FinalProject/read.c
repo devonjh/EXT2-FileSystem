@@ -11,7 +11,6 @@ int myRead(int fdNum, char *buf, int nbytes) {
     int remaining;
     char *cq = buf;
     char *cp;
-    char *readBuf;
 
     if (running->fd[fdNum]->mode == 1 || running->fd[fdNum]->mode == 3) {
         printf("fd[%d] is not open in a compatible type.\n",fdNum);
