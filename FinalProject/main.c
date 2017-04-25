@@ -154,6 +154,9 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      if(strcmp(cmd,"cp")==0){
        cpFile(pathname,pathname2);
      }
+     if(strcmp(cmd,"mv")==0){
+       mv(pathname, pathname2);
+     }
      if (strcmp(cmd, "quit")==0){
         quit();
      }

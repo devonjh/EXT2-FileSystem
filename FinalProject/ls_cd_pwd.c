@@ -1,6 +1,7 @@
 #ifndef ls_cd_pwd_c
 #define ls_cd_pwd_c
 
+#include "type.h"
 #include "util.c"
 
 int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code 
@@ -228,12 +229,12 @@ int quit()
           write its INODE back to disk; 
           if dirty, write it back out in disk
   }*/
-  // for(int i = 0; i < ninodes; i++){
-  //   if(minode[i].refCount > 0 && minode[i].dirty == 1){
-  //     minode[i].refCount = 1;
-  //     iput(&minode[i]);
-  //   }
-  // }
+  for(int i = 0; i < NMINODE; i++){
+    if(minode[i].refCount > 0 && minode[i].dirty == 1){
+      minode[i].refCount = 1;
+      iput(&minode[i]);
+    }
+  }
 
   exit(1);  // terminate program
   return 0;

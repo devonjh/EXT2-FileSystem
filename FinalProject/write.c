@@ -4,6 +4,7 @@
 #include "type.h"
 #include "util.c"
 #include "mkdir_creat.c"
+#include "link.c"
 
 int mywrite(int fdNum, char *tempbuf, int nbytes){
     //preps: Ask for fd and writemode.
@@ -58,7 +59,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
             //indir blocks hasn't been touched.
             if(!indirFlag){
                 //grabbed the single indirect and make it physical
-                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], indirBuff);
+                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
                 indirFlag = 1;
             }
             indirect = (long *)tempbuf;
@@ -68,7 +69,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
         else{
             //getting block for the fourteenth block
             if(!dblIndirect){
-                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[14], dblinderBuff);
+                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], dblinderBuff);
                 dblIndirect = 1; //don't need to go here now, already grabbed it in dblkbuf'
             }
             //grab the first 13 and have this be a position in the blocks;
@@ -88,7 +89,6 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
         cp = wbuf+startByte;
         remain = BLKSIZE - startByte;
         while(remain > 0){
-            
             *cp++ = *cq++; //move everytime.
             nbytes--; remain--;
             running->fd[fdNum]->offset++;
@@ -96,7 +96,6 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 running->fd[fdNum]->mptr->INODE.i_size++;
             if(nbytes <= 0)
                 break;
-            
         }
         put_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);    //write it back to disk;
     }
@@ -146,6 +145,42 @@ int cpFile(char *src, char *dest){
     closeFile(destFD);
     closeFile(srcFD);
     return n;
+}
+
+//basically renaming in a different spot.
+//verify that src exists:
+//is src->dev same as dest->dev
+//if so, hard link dest with sorc and unlink src
+//not same dev = cp src to dst, unlink src
+int mv(char *src, char *dest){
+    MINODE *srcmip, *destmip;
+    int srcFD, destFD;
+    //open should verify if src is all available
+    srcFD = openFile(src, 0);
+    destFD = openFile(src, 2);
+    if(srcFD == -1){
+        printf("unable to open src. Exiting \n");
+        return -1;
+    }
+    //grab the src's mip 
+    srcmip = running->fd[srcFD]->mptr;
+    destmip = running->fd[destFD]->mptr;
+    if(srcmip->dev == destmip->dev){
+        printf("samedev\n");
+        link(src, dest);
+        unlink(src);
+        closeFile(srcFD);
+        closeFile(destFD);
+        return 0;
+    }
+    
+    //not same dev:
+    closeFile(srcFD);
+    closeFile(destFD);
+    cpFile(src,dest);
+    unlink(src);
+    return 0;
+
 }
 
 #endif

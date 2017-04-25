@@ -133,10 +133,11 @@ int unlink (char *pathname) {
     printf("MIP INODE: %d\n", ino);
 
     mip->INODE.i_links_count -= 1;
-
+    printf("Link count: %d\n", mip->INODE.i_links_count);
     if(mip->INODE.i_links_count==0){
-        truncate(dev,mip);
+        
         printf("No more links with this file, deallocating:\n");
+        truncate(dev,mip);
         //incFreeInodes(dev);
         //BASICALLY TRUNCATE: 
         // for(int i = 0; i < 12; i++){

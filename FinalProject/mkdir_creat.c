@@ -12,9 +12,13 @@ int mkkdir(char *pathname){
     char tempbase[BLKSIZE], tempdir[BLKSIZE];
     char *tempparent, *tempchild;
     MINODE *pip, *mip;
+    int mino;
     strcpy(tempbase, pathname);
     strcpy(tempdir, pathname);
 
+    //verify its there:
+    
+        
     //from root:
     tempparent = dirname(tempdir);
     tempchild = basename(tempbase);
@@ -22,49 +26,31 @@ int mkkdir(char *pathname){
         dev = root->dev;
         pino = getino(dev, tempparent);
         pip = iget(dev,pino);
-        if(pino == 0){
-            printf("Does not exist sorry\n");
-            return 0;
+        if(search(pip,pathname)!=0){
+            printf("Already exists");
+            return -1;
         }
     }
     else{
         dev = running->cwd->dev;
         pino = running->cwd->ino;
-        
         pip = iget(dev, pino);
-        checkerino = search(pip, tempparent);
-        if(checkerino == 0){
-            printf("not found \n");
-            return 0;
-        }
     }
-    // if(strcmp(tempparent,".")==0){
-    //     // strcpy(tempparent, "/");
-    //     // printf("parent name: %s\n", tempparent);
-    //     pino = running->cwd->ino;
-    //     pip = iget(dev,running->cwd->ino);
-    // }
-    //grab the parent's inode:
-    //pino = getino(dev, tempparent);
-    // else{
-    //     pip = iget(dev, pino);
-    // }
+    
     if(pip == 0){
         printf("Desired location not found. \n");
+        iput(0);
         return -1;
     }
+
     printf("parent: %s   child: %s   \n", tempparent, tempchild);
     //still gotta verify if it exists in the parent directory lmao:
-    //checkerino = search(pip, tempparent);
-    // if(checkerino == 0){
-    //     printf("Can't find file\n");
-    //     return -1;
-    // }
-    // mip = iget(dev,checkerino);
-    // if(!S_ISREG(mip->INODE.i_mode)){
-    //     printf("Not in dir.\n");
-    //     return -1;
-    // }
+    //search:
+    if(search(pip,tempchild)!=0){
+        printf("Already exists. \n");
+        iput(pip);
+        return -1;
+    }
     //run mymakedir which adds the actual file there:
     mymkdir(pip, tempchild);
 
@@ -233,35 +219,41 @@ int enter_name(MINODE * pip, int myino, char * myname) {
 
 int creat_file(char *pathname){
     //similar as mkdir: 
+    //makes sure that i can paarse in the parent name nad child name. childname will be the one created.
+    
     char tempbase[BLKSIZE], tempdir[BLKSIZE];
     char *tempparent, *tempchild;
-    MINODE *pip;
+    MINODE *pip, *mip;
+    int mino;
     strcpy(tempbase, pathname);
     strcpy(tempdir, pathname);
 
+    //verify its there:
+    
+        
     //from root:
     tempparent = dirname(tempdir);
     tempchild = basename(tempbase);
     if(pathname[0] == '/'){
         dev = root->dev;
         pino = getino(dev, tempparent);
+        pip = iget(dev,pino);
+        if(search(pip,pathname)!=0){
+            printf("Already exists");
+            return -1;
+        }
     }
     else{
         dev = running->cwd->dev;
-    }
-    printf("parent: %s   child: %s   \n", tempparent, tempchild);
-
-    //means there was no parent:
-    if(strcmp(tempparent,".")==0){
         pino = running->cwd->ino;
-        pip = iget(dev,running->cwd->ino);
-    }
-    //otherwise, do the normal get minode using tempparent's name:
-    else{
         pip = iget(dev, pino);
     }
-    //still gotta verify if it exists in the parent directory lmao:
-    printf("parent's mnode: %d\n", pino);
+    
+    if(pip == 0){
+        printf("Desired location not found. \n");
+        iput(0);
+        return -1;
+    }
     //now we can call mycreat:
     my_creat(pip, tempchild);
 }
@@ -378,36 +370,41 @@ int enter_creat_name(MINODE *pip, int myino, char *myname){
 
 int creat_sym_file(char *pathname){
     //similar as mkdir: 
+    //makes sure that i can paarse in the parent name nad child name. childname will be the one created.
+    
     char tempbase[BLKSIZE], tempdir[BLKSIZE];
     char *tempparent, *tempchild;
-    MINODE *pip;
+    MINODE *pip, *mip;
+    int mino;
     strcpy(tempbase, pathname);
     strcpy(tempdir, pathname);
 
+    //verify its there:
+    
+        
     //from root:
     tempparent = dirname(tempdir);
     tempchild = basename(tempbase);
     if(pathname[0] == '/'){
         dev = root->dev;
         pino = getino(dev, tempparent);
+        pip = iget(dev,pino);
+        if(search(pip,pathname)!=0){
+            printf("Already exists");
+            return -1;
+        }
     }
     else{
         dev = running->cwd->dev;
-    }
-    printf("parent: %s   child: %s   \n", tempparent, tempchild);
-
-    //means there was no parent:
-    if(strcmp(tempparent,".")==0){
         pino = running->cwd->ino;
-        pip = iget(dev,running->cwd->ino);
-    }
-    //otherwise, do the normal get minode using tempparent's name:
-    else{
         pip = iget(dev, pino);
     }
-    //still gotta verify if it exists in the parent directory lmao:
-    printf("parent's mnode: %d\n", pino);
-    //now we can call mycreat:
+    
+    if(pip == 0){
+        printf("Desired location not found. \n");
+        iput(0);
+        return -1;
+    }
     my_sym_creat(pip, tempchild);
 }
 
