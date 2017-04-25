@@ -22,16 +22,15 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
     long *indirect;
     long *dblIndirect;
     long secondLevel;
-    char *cq = buf;
+    char *cq = tempbuf;
     char *cp;
     char indirBuff[BLKSIZE];
     char dblinderBuff[BLKSIZE];
     char wbuf[BLKSIZE];
 
     printf("cq = %s\n", cq);
-    //set it equal to 0:
-    //memset(&buf[0], 0, sizeof(buf));
 
+    memset(&wbuf[0], 0, sizeof(wbuf));
     //check if avaialbe for WR RW APD:
     if(running->fd[fdNum]->mode==0){
         printf("fd[%d] is not open in a compatible type. \n",fdNum);
@@ -62,7 +61,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], indirBuff);
                 indirFlag = 1;
             }
-            indirect = (long *)buf;
+            indirect = (long *)tempbuf;
             realBlk = *(indirect + (lblk - 12));
         }
         //double indirect:
@@ -73,35 +72,37 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 dblIndirect = 1; //don't need to go here now, already grabbed it in dblkbuf'
             }
             //grab the first 13 and have this be a position in the blocks;
-            dblIndirect = (long *)buf;
+            dblIndirect = (long *)dblinderBuff;
             if(secondLevel != *(dblIndirect + ((lblk - 268)/256))){
                 secondLevel = *(dblIndirect+((lblk - 268)/256)); //grab that avialable block to second level;
                 get_block(running->fd[fdNum]->mptr->dev, secondLevel, indirBuff);
             }
-            indirect = (long *)buf;
-            realBlk = *(indirect) + ((lblk - 12) % 256); //kinda like mailman, make that block given a real block/physical block
+            indirect = (long *)tempbuf;
+            realBlk = *(indirect) + ((lblk - 268) % 256); //kinda like mailman, make that block given a real block/physical block
         }
+        //now that we got all of the blocks handled,
         //write to the data block:
+        printf("printhere?\n");
         get_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);
+        
         cp = wbuf+startByte;
         remain = BLKSIZE - startByte;
         while(remain > 0){
-            strcat(wbuf,buf);
+            
             *cp++ = *cq++; //move everytime.
             nbytes--; remain--;
-            running->fd[fdNum]->offset--;
+            running->fd[fdNum]->offset++;
             if(running->fd[fdNum]->offset > running->fd[fdNum]->mptr->INODE.i_size)
                 running->fd[fdNum]->mptr->INODE.i_size++;
             if(nbytes <= 0)
                 break;
-            //put_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);
+            
         }
         put_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);    //write it back to disk;
     }
     running->fd[fdNum]->mptr->dirty = 1;
-    //iput(running->fd[fdNum]->mptr);
+    iput(running->fd[fdNum]->mptr);
     printf("Write %d char into file descriptor fd = %d\n", nbytes, fd);
-    memset(&buf[0], 0, sizeof(buf));
     return nbytes;
 }   
 
@@ -140,10 +141,8 @@ int cpFile(char *src, char *dest){
     }
     
     while(n = myRead(srcFD, srcBuf, BLKSIZE)){
-        printf("Temp: %s\n", srcBuf);
         mywrite(destFD, srcBuf, n);
     }
-    printf("src: %s\n", srcBuf);
     closeFile(destFD);
     closeFile(srcFD);
     return n;
