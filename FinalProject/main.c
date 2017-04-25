@@ -11,6 +11,7 @@
 
 main(int argc, char *argv[ ])   // run as a.out [diskname]
 {
+  system("./diskcopy.sh");
   int tempMode;
 
     if (argc > 1)
@@ -69,7 +70,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
   running->cwd = root; //set running's cwd   to point at / in memory;*/
   
   while(1){       // command processing loop
-     printf("\ninput command : [ls|cd|pwd|mkdir|touch|stat|creat|link|symlink|rmdir|open|close|lseek|read|quit] ");
+     printf("\ninput command : [ls|cd|pwd|mkdir|touch|stat|creat|link|symlink|rmdir|open|close|lseek|read|write|cp|quit] ");
      memset(&pathname[0], 0, sizeof(pathname));
 
      //use fgets() to get user inputs into line[128]
@@ -127,7 +128,10 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
        lseekFD(atoi(pathname),atoi(pathname2));
      }
      if(strcmp(cmd,"read")==0) {
-       myRead(atoi(pathname),buf, atoi(pathname2));
+       myRead(atoi(pathname),readBuf, atoi(pathname2));
+     }
+     if(strcmp(cmd,"write")==0){
+       mywrite(atoi(pathname),writeBuf, atoi(pathname2));
      }
      if (strcmp(cmd,"creat")==0) {
        creat_file(pathname);
@@ -143,6 +147,12 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      }
      if(strcmp(cmd,"showLinks")==0) {
        showLinks(pathname);
+     }
+     if (strcmp(cmd, "cat")==0) {
+       catFile(pathname);
+     }
+     if(strcmp(cmd,"cp")==0){
+       cpFile(pathname,pathname2);
      }
      if (strcmp(cmd, "quit")==0){
         quit();
