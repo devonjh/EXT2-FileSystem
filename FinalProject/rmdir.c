@@ -25,22 +25,11 @@ int rmdir(char *pathname) {
     if(pathname[0] == '/'){
         dev = root->dev;
         pino = getino(dev, tempparent);
+        pip = iget(dev, pino);
     }
     else{
         dev = running->cwd->dev;
-    }
-
-
-    printf("parent: %s   child: %s   \n", tempparent, tempchild);
-    if(strcmp(tempparent,".")==0){
         pino = running->cwd->ino;
-        pip = iget(dev,running->cwd->ino);
-    }
-
-    
-    //grab the parent's inode:
-    //pino = getino(dev, tempparent);
-    else{
         pip = iget(dev, pino);
     }
 
@@ -49,14 +38,11 @@ int rmdir(char *pathname) {
         iput(mip);
         return -1;
     }
-    
     //now inode:
     ino = search(pip, tempchild);
     printf("Inode: %d\n", ino);
     printf("Parent ino: %d\n", pino);
     mip =  iget(dev, ino);
-
-    //Check status of dir to make sure we can remove it.
 
     //Check to make sure pathname is a dir and not a regular file.
     if (!S_ISDIR(mip->INODE.i_mode)) {
@@ -65,6 +51,7 @@ int rmdir(char *pathname) {
         return -1;
     }
 
+    printf("RefCount: %d\n", mip->refCount);
     //Make sure that the directory is not BUSY, or that refCount is greater than 0.
     if (mip->refCount > 1) {
         printf("Desired directory is in use.\n");
@@ -108,6 +95,7 @@ int rmdir(char *pathname) {
             freeblock(dev, tempparentdir);
         }
     }
+
     idealloc(dev,ino);
     printf("Does this get through?\n");
 

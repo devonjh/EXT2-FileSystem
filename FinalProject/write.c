@@ -29,8 +29,6 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
     char dblinderBuff[BLKSIZE];
     char wbuf[BLKSIZE];
 
-    printf("cq = %s\n", cq);
-
     memset(&wbuf[0], 0, sizeof(wbuf));
     //check if avaialbe for WR RW APD:
     if(running->fd[fdNum]->mode==0){

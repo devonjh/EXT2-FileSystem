@@ -167,11 +167,12 @@ int iput(MINODE *mip){ //dispose of a minode[] pointed by mip
 
 int search(MINODE *mip, char *name)
 {
-  char tempName[128];
+  char tempName[BLKSIZE];
   int i;
 
   for (i = 0; i <=11; i++) {
     if (mip->INODE.i_block[i]) {
+      printf("test\n");
       get_block(dev, mip->INODE.i_block[i],buf);
       dp = (DIR *)buf;
       cp = buf;
