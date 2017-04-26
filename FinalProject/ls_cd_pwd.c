@@ -33,14 +33,13 @@ int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code
         printf("%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, dp->name);    //Not printing correctly.
         return;
       }
-
     i = 0;
+    printf("Permissions\tiNum\trec_len\tname_len\tFile Name\n"); 
     while (mip->INODE.i_block[i] != 0) {
-      get_block(dev, mip->INODE.i_block[0], tempBuf);
+      get_block(dev, mip->INODE.i_block[i], tempBuf);
       dp = (DIR *)tempBuf;
       tempCP = tempBuf;
       ip = (INODE *)tempCP;
-      printf("Permissions\tiNum\trec_len\tname_len\tFile Name\n"); 
 
       while (tempCP < &tempBuf[BLKSIZE]) {
         
@@ -97,13 +96,12 @@ int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code
       }
 
       i = 0;
+      printf("iNum\trec_len\tname_len\tFile Name\n"); 
       //Location is a directory. Step into it and print contents.
       while (mip->INODE.i_block[i] != 0) {
         get_block(dev, mip->INODE.i_block[i], tempBuf);
         dp = (DIR *)tempBuf;
         tempCP = tempBuf;
-
-        printf("iNum\trec_len\tname_len\tFile Name\n"); 
 
         while (tempCP < &tempBuf[BLKSIZE]) {
           strncpy(tempName, dp->name, dp->name_len);
@@ -202,16 +200,9 @@ int quit()
           write its INODE back to disk; 
           if dirty, write it back out in disk
   }*/
-    for(int i = 0; i < NMINODE; i++){
-      if(minode[i].refCount > 0 && minode[i].dirty == 1){
-        minode[i].refCount = 1;
-        iput(&minode[i]);
-      }
-    }
+  return 0;
   
   exit(1);  // terminate program
-  return 0;
 }
-
 
 #endif
