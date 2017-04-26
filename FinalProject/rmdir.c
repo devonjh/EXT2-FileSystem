@@ -109,6 +109,9 @@ int rmdir(char *pathname) {
     return 0;
 }
 
+/*
+
+*/
 int rmchild(MINODE *parent, char *name){
     //faster ref
     INODE *piNode = &parent->INODE;
@@ -116,6 +119,58 @@ int rmchild(MINODE *parent, char *name){
     char *cp;
     int blockindex, tempparentblock, remainblock;
 
+/*
+1. Search parent INODE's data block(s) for the entry of name
+
+   2. Erase name entry from parent directory by
+    
+  (1). if LAST entry in block{
+                                         |remove this entry   |
+          -----------------------------------------------------
+          xxxxx|INO rlen nlen NAME |yyy  |zzz                 | 
+          -----------------------------------------------------
+
+                  becomes:
+          -----------------------------------------------------
+          xxxxx|INO rlen nlen NAME |yyy (add zzz len to yyy)  |
+          -----------------------------------------------------
+
+      }
+    
+  (2). if (first entry in a data block){
+          deallocate the data block; modify parent's file size;
+
+          -----------------------------------------------
+          |INO Rlen Nlen NAME                           | 
+          -----------------------------------------------
+          
+          Assume this is parent's i_block[i]:
+          move parent's NONZERO blocks upward, i.e. 
+               i_block[i+1] becomes i_block[i]
+               etc.
+          so that there is no HOLEs in parent's data block numbers
+      }
+
+  (3). if in the middle of a block{
+          move all entries AFTER this entry LEFT;
+          add removed rec_len to the LAST entry of the block;
+          no need to change parent's fileSize;
+
+               | remove this entry   |
+          -----------------------------------------------
+          xxxxx|INO rlen nlen NAME   |yyy  |zzz         | 
+          -----------------------------------------------
+
+                  becomes:
+          -----------------------------------------------
+          xxxxx|yyy |zzz (rec_len INC by rlen)          |
+          -----------------------------------------------
+
+      }
+    
+  3. Write the parent's data block back to disk;
+     mark parent minode DIRTY for write-back
+*/
     //go through indoes:
     for(int i = 0; i < 12; i++){
         //check if theres something, if there is, rem it
@@ -127,9 +182,9 @@ int rmchild(MINODE *parent, char *name){
             cp = buf;
             blockindex = 0;
 
-            //lets search now:
+            //lets the whole data block:
             while(blockindex < BLKSIZE){
-                //found?
+                //found IN THE MIDDLEEE:
                 if(strcmp(dp->name,name) == 0){
                     //last block?
                     if(blockindex + dp->rec_len == BLKSIZE){
@@ -140,7 +195,7 @@ int rmchild(MINODE *parent, char *name){
                             freeblock(dev, tempparentblock);
                             return 1;
                         }
-                        //keep it if it aint soloo:
+                        //keep it if it aint soloo, KEEP GOING:
                         else{
                             prevdp->rec_len += dp-> rec_len;
                             put_block(dev,piNode->i_block[i],buf);
@@ -150,25 +205,25 @@ int rmchild(MINODE *parent, char *name){
 
                     //now the hard part: keeping track of the previous entry:
                     prevdp = dp;
-                    tempparentblock = blockindex;
+                    tempparentblock = blockindex; //gonna traverse through with next entries
 
                     //now move dp up:
                     cp += dp->rec_len;
                     tempparentblock += dp->rec_len;
                     dp = (DIR *)cp;
 
-                    //I FORGOT THIS ONE: We need to remember the rest of the blocks:
+                    //I FORGOT THIS ONE: We need to remember the rest of the blocks from old entry's lenght:
                     remainblock = prevdp->rec_len;
 
+                    //NOW WHILE WERE KEEPING TABS WITH THE PREVOIUS BLOCK:
                     //push everything to the left if there's anything in the left:
                     while(tempparentblock < BLKSIZE){
                         //update
                         prevdp-> rec_len = dp->rec_len;
-
                         //push everything to the left memory:
                         prevdp-> inode = dp->inode;
                         prevdp-> name_len = dp-> name_len;
-                        prevdp->file_type = dp -> file_type;
+                        prevdp-> file_type = dp -> file_type;
                         //prevdp->name= dp->name;
                         strcpy(prevdp->name, dp->name);
 
@@ -190,6 +245,8 @@ int rmchild(MINODE *parent, char *name){
                         printf("Previous iode entry: %s\n", dp->name);
                     }
                 }
+                
+                //keep going down:
                 prevdp = dp;
                 //next entry pls:
                 cp += dp->rec_len;
