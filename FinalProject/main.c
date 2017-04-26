@@ -71,6 +71,8 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
   
   while(1){       // command processing loop
      printf("\ninput command : [ls|cd|pwd|mkdir|touch|stat|creat|link|symlink|rmdir|open|close|lseek|read|write|cp|quit] ");
+     char wholepath[BLKSIZE];
+     memset(&wholepath[0], 0, sizeof(wholepath));
      memset(&pathname[0], 0, sizeof(pathname));
 
      //use fgets() to get user inputs into line[128]
@@ -85,7 +87,9 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
      }
 
      sscanf(line,"%s %s %s %s",cmd, pathname, pathname2, pathname3);
-
+     
+     strcpy(wholepath, pathname2);
+     strcat(wholepath, pathname3);
      //Use sscanf() to extract cmd[ ] and pathname[] from line[128]
      //printf("cmd=%s pathname=%s\n", cmd, pathname);
 
@@ -131,7 +135,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
        myRead(atoi(pathname),readBuf, atoi(pathname2));
      }
      if(strcmp(cmd,"write")==0){
-       write_file(atoi(pathname),pathname2);
+       write_file(atoi(pathname),wholepath);
      }
      if (strcmp(cmd,"creat")==0) {
        creat_file(pathname);
