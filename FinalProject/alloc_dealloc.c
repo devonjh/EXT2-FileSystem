@@ -84,7 +84,6 @@ int freeblock(int dev, int blockindex){
   //set_bit(buff,blockindex);
   clr_bit(buff, blockindex);
   put_block(dev, bmap, buff);
-
   //increase blocks:
   incFreeInodes(dev);
 }

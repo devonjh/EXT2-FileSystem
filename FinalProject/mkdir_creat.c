@@ -8,7 +8,6 @@ int pino, checkerino;
 
 int mkkdir(char *pathname){
     //makes sure that i can paarse in the parent name nad child name. childname will be the one created.
-    
     char tempbase[BLKSIZE], tempdir[BLKSIZE];
     char *tempparent, *tempchild;
     MINODE *pip, *mip;
@@ -16,9 +15,6 @@ int mkkdir(char *pathname){
     strcpy(tempbase, pathname);
     strcpy(tempdir, pathname);
 
-    //verify its there:
-    
-        
     //from root:
     tempparent = dirname(tempdir);
     tempchild = basename(tempbase);
@@ -26,10 +22,6 @@ int mkkdir(char *pathname){
         dev = root->dev;
         pino = getino(dev, tempparent);
         pip = iget(dev,pino);
-        if(search(pip,pathname)!=0){
-            printf("Already exists");
-            return -1;
-        }
     }
     else{
         dev = running->cwd->dev;
@@ -128,9 +120,9 @@ int enter_name(MINODE * pip, int myino, char * myname) {
   int i = 0;
   int need_len, ideal_last_len, rem;
   int bno;
+  char buf[BLKSIZE];
 
   printf("name inserting: %s\n", myname);
-  printf("inode's size: %d\n", pip->INODE.i_size);
   //need to add the file count thoo:
   pip->INODE.i_links_count += 1;
   
@@ -140,11 +132,9 @@ int enter_name(MINODE * pip, int myino, char * myname) {
     printf("Block position: %d\n", i);
     //no more space?
     if (pip->INODE.i_block[i] == 0) {
-      break;
+        break;
     }
-
     //bno = pip->INODE.i_block[i];
-
     //grab parent's data in a buf:
     get_block(dev, pip->INODE.i_block[i], buf);
 
@@ -156,7 +146,6 @@ int enter_name(MINODE * pip, int myino, char * myname) {
       printf("%d\t%d\t%d\t\t%s\n", dp->inode, dp->rec_len, dp->name_len, dp->name);
       cp += dp->rec_len;
       dp = (DIR * ) cp;
-      //i++;
     }
     printf("Blockposition: %d\n", i);
     printf("Last entry name: %s\n\n", dp->name);
@@ -199,9 +188,9 @@ int enter_name(MINODE * pip, int myino, char * myname) {
   pip->dirty = 1;
 
   //MOVE UP TO GET THROUGH THE NEXT BLOCK:
-  get_block(dev, pip->INODE.i_block[i], buf);
+  get_block(dev, newbno, buf);
   cp = buf;
-  dp = (DIR * ) buf;
+  dp = (DIR *) buf;
   
 
   //create new directory here:

@@ -34,36 +34,39 @@ int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code
         printf("%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, dp->name);    //Not printing correctly.
         return;
       }
+    i = 0;
+    while(mip->INODE.i_block[i] != 0){
+      get_block(dev, mip->INODE.i_block[0], tempBuf);
+      dp = (DIR *)tempBuf;
+      tempCP = tempBuf;
+      printf("Permissions\tiNum\trec_len\tname_len\tFile Name\n"); 
 
-    get_block(dev, mip->INODE.i_block[0], tempBuf);
-    dp = (DIR *)tempBuf;
-    tempCP = tempBuf;
-    printf("Permissions\tiNum\trec_len\tname_len\tFile Name\n"); 
-
-    while (tempCP < &tempBuf[BLKSIZE]) {
-      
-      strncpy(tempName, dp->name, dp->name_len);
-      tempName[dp->name_len] = 0;   //get rid of null terminating character.
-
-      iNum = dp->inode;
-      printPermissions(iNum);
-      MINODE *lsinode = iget(dev, iNum);
-      
-      //printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
-      if(S_ISLNK(lsinode->INODE.i_mode)){
-        // -> %s", (char *) mip->INODE.i_blocks);
-        //printf("SYMLINK!");
-        char symname[64];
-        strcpy(symname,tempName);
+      while (tempCP < &tempBuf[BLKSIZE]) {
         
-        printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
+        strncpy(tempName, dp->name, dp->name_len);
+        tempName[dp->name_len] = 0;   //get rid of null terminating character.
+
+        iNum = dp->inode;
+        printPermissions(iNum);
+        MINODE *lsinode = iget(dev, iNum);
+        
+        //printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
+        if(S_ISLNK(lsinode->INODE.i_mode)){
+          // -> %s", (char *) mip->INODE.i_blocks);
+          //printf("SYMLINK!");
+          char symname[64];
+          strcpy(symname,tempName);
+          
+          printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
+        }
+        else{
+          printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
+        }
+        tempCP += dp->rec_len;
+        dp = (DIR *)tempCP;
       }
-      else{
-        printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
-      }
-      tempCP += dp->rec_len;
-      dp = (DIR *)tempCP;
-    }
+    i++;
+  }
   }
 
     

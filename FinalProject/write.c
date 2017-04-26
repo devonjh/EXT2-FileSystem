@@ -55,14 +55,14 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
             realBlk = running->fd[fdNum]->mptr->INODE.i_block[lblk];
         }
         //indirect block:
-        else if(lblk >= 12 && lblk <lblk < 256+12){
+        else if(lblk >= 12 && lblk < 256+12){
             //indir blocks hasn't been touched.
             if(!indirFlag){
                 //grabbed the single indirect and make it physical
                 get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
                 indirFlag = 1;
             }
-            indirect = (long *)tempbuf;
+            indirect = (long *)indirBuff;
             realBlk = *(indirect + (lblk - 12));
         }
         //double indirect:
@@ -78,10 +78,10 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 secondLevel = *(dblIndirect+((lblk - 268)/256)); //grab that avialable block to second level;
                 get_block(running->fd[fdNum]->mptr->dev, secondLevel, indirBuff);
             }
-            indirect = (long *)tempbuf;
+            indirect = (long *)indirBuff;
             realBlk = *(indirect) + ((lblk - 268) % 256); //kinda like mailman, make that block given a real block/physical block
         }
-        //now that we got all of the blocks handled,
+        //now that we got all sof the blocks handled,
         //write to the data block:
         printf("printhere?\n");
         get_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);
@@ -123,6 +123,7 @@ cp src dest:
        write(gd, buf, n);  // notice the n in write()
    }
 */
+
 
 int cpFile(char *src, char *dest){
     //src should be for read;
@@ -183,4 +184,78 @@ int mv(char *src, char *dest){
 
 }
 
+// int logicaltoreal(MINODE *mip, int lblk){
+//     int realblk, indirectbuf[BLKSIZE], dblindirectbuf[BLKSIZE],dbl2[BLKSIZE];
+
+//     if(lblk < 12){
+//         //if we have to allocate if nonexistant
+//         if(mip->INODE.i_block[lblk] == 0){
+//             //allocate that logical blk given
+//             mip->INODE.i_block[lblk] = balloc(dev);
+//             //erase block:
+//             freeblock(dev, mip->INODE.i_block[lblk]);
+//             mip->dirty = 1;
+//             iput(mip);
+//         }
+
+//         realblk = mip->INODE.i_block[lblk]);
+//     }
+
+//     //single indir block:
+//     if(lblk>= 12 && lblk< 268){
+//         //no blocks? create the blocks and free the block of 0;
+//         if(mip->INODE.i_block[12] == 0){
+//             mip->INODE.i_block[12] = balloc(dev);
+//             freeblock(dev,mip->INODE.i_block[12]);
+//         }
+//         get_block(dev, mip->INODE.i_block[12], indirectbuf);
+//         realblk = indirectbuf[lblk - 12);
+
+//         //if there's nothing in that indirect block, set up for it by allocating and puttin back:
+//         if(blk == 0){
+//             blk = balloc(dev);
+//             //erase block:
+//             freeblock(dev, blk);
+//             //put it back to the physcial:
+//             put_block(dev, mip->INODE.i_node, blk-12);
+//         }
+        
+    
+//     } 
+//     //double indirect:
+//     else{
+//         //none in the double indirectblock:
+//         if(mip->INODE.i_block[13] == 0){
+//             mip->INODE.i_block[13] = balloc(dev);
+//             freeblock(dev,mip->INODE.i_block[13]);
+//         }
+//         //grab the first lvl of indirect block
+//         get_block(dev, mip->INODE.i_block[13], indirectbuf);
+
+//         lblk == 12+256;
+//         dblindirectblock = realblk[indirectbuf / 256];
+
+//         if(doubleindirectbuf )
+//         //if there's nothing in that indirect block, set up for it by allocating and puttin back:
+//         if(dblindirectblock == 0){
+//             dblindirectblock = balloc(dev);     
+//             indirectbuf[(lblk - 12)/256] = dblindirectblock;
+//             bfree(dev, dblindirectblock);
+//             put_block(dev, mip->INODE.i_block[13], indirectblock);
+
+//         }
+//         get_block(dev, doubleindirectbuf, db2);
+//         realblk = db2[lblk % 256];
+//         //if there's nothing in that indirect block, set up for it by allocating and puttin back:
+//         if(realblk == 0){
+//             realblk = balloc(dev);     
+//             bfree(dev, realblock);
+//             db2[(lblk - 12)% 256] = realblk;
+//             put_block(dev, mip->INODE.i_block[13], db2);
+
+//         }
+//     }
+//     return realblk;
+//     //returns a bno
+// }
 #endif
