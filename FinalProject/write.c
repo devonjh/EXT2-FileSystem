@@ -39,7 +39,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
 
     //mywrite(fd,buf,nbytes)
     int count = 0, available, lblk, startByte, realBlk, remain;
-    int indirFlag, dblFlag;
+    int indirFlag, dblFlag, offsetbig = 0;
     int *indirect, *dblIndirect, secondLevel;
     char *cq = tempbuf;
     char *cp;
@@ -57,6 +57,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
 
     while(nbytes > 0){
         //logical blocks and direct and indirects:
+        printf("oneiteration\n\n\n");
         lblk = running->fd[fdNum]->offset / BLKSIZE;
         startByte = running->fd[fdNum]->offset % BLKSIZE;
 
@@ -82,7 +83,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 realBlk = balloc(dev);
                 //memset(realBlk, 0, 1024);
                 indirBuff[lblk - 12] = realBlk;
-                put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
+                //put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
             }
             // //indir blocks hasn't been touched.
             // if(!indirFlag){
@@ -107,7 +108,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 secondLevel = balloc(dev);
                 db1[lblk/256] = secondLevel;
                 //memset(secondLevel, 0, 1024);
-                put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
+                //put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
             }
 
             get_block(dev, secondLevel, db2);
@@ -118,7 +119,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 realBlk = balloc(dev);
                 //memset(realBlk, 0, BLKSIZE);
                 db2[lblk%256] = realBlk;
-                put_block(dev, secondLevel, db2);
+                //put_block(dev, secondLevel, db2);
             }
             // if(!dblFlag){
             //     get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], dblinderBuff);
@@ -148,11 +149,33 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
             if(nbytes <= 0)
                 break;
         }
-        put_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);    //write it back to disk;
+        //lets put everything in aka nbytes:
+        // if(remain > nbytes){
+        //     memcpy(cp, tempbuf, nbytes);
+        //     //strcat(wbuf, tempbuf);
+        //     //nbytes = 0;
+        //     running->fd[fdNum]->offset += nbytes;
+        //     offsetbig += nbytes;
+        //     //put_block(dev, realBlk, wbuf);
+        // }
+        // else{
+        //     memcpy(cp, tempbuf, remain);
+        //     nbytes -= remain;
+        //     running->fd[fdNum]->offset += remain;
+        //     offsetbig += nbytes;
+            
+        // }
+        // if(running->fd[fdNum]->offset > running->fd[fdNum]->mptr->INODE.i_size)
+        //     running->fd[fdNum]->mptr->INODE.i_size = running->fd[fdNum]->offset;
+        //printf("wbuf: %s", wbuf);
+        put_block(dev, realBlk, wbuf);
     }
+    // if(offsetbig > 0){
+    //     put_block(dev, realBlk, wbuf);
+    // }
     running->fd[fdNum]->mptr->dirty = 1;
     iput(running->fd[fdNum]->mptr);
-    printf("Write %d char into file descriptor fd = %d\n", nbytes, fd);
+    printf("Write %d char into file descriptor fd = %d\n", offsetbig, fd);
     return nbytes;
 }   
 
