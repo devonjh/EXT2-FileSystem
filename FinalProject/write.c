@@ -25,9 +25,11 @@ int write_file(int fdNum, char *outputS){
         return -1;
     }
     //set up the writing:
-    strcpy(outputS, stringout);
+    printf("word given: %s\n", outputS);
+    strcpy(stringout, outputS);
     len = strlen(outputS);
-    return mywrite(fdNum, buf, len);
+    printf("string: %s\n", outputS);
+    return mywrite(fdNum, outputS, len);
 }
 
 int mywrite(int fdNum, char *tempbuf, int nbytes){
@@ -41,8 +43,8 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
     int *indirect, *dblIndirect, secondLevel;
     char *cq = tempbuf;
     char *cp;
-    char indirBuff[BLKSIZE], dblinderBuff[BLKSIZE];
-      char wbuf[BLKSIZE];
+    int indirBuff[BLKSIZE], dblinderBuff[BLKSIZE], db1[BLKSIZE], db2[BLKSIZE];
+    char wbuf[BLKSIZE];
 
     memset(&wbuf[0], 0, sizeof(wbuf));
     //check if avaialbe for WR RW APD:
@@ -59,44 +61,80 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
         startByte = running->fd[fdNum]->offset % BLKSIZE;
 
          if(lblk < 12){
-            //
             //must allocate blocks if it isn't avialable:'
             if(running->fd[fdNum]->mptr->INODE.i_block[lblk] == 0){
                 running->fd[fdNum]->mptr->INODE.i_block[lblk] = balloc(running->fd[fdNum]->mptr->dev);
+                //memset(lblk,0,BLKSIZE);                
             }
             //available for disk, now written in teh real block:
             realBlk = running->fd[fdNum]->mptr->INODE.i_block[lblk];
         }
         //indirect block:
         else if(lblk >= 12 && lblk < 256+12){
-            //indir blocks hasn't been touched.
-            if(!indirFlag){
-                //grabbed the single indirect and make it physical
-                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
-                indirFlag = 1;
+            if(running->fd[fdNum]->mptr->INODE.i_block[12] == 0){
+                running->fd[fdNum]->mptr->INODE.i_block[12] = balloc(dev);
+                //memset(running->fd[fdNum]->mptr->INODE.i_block[12], 0, BLKSIZE);
             }
-            indirect = (long *)indirBuff;
-            realBlk = *(indirect + (lblk - 12));
+            get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
+            realBlk = indirBuff[lblk - 12];
+
+            if(realBlk == 0){
+                realBlk = balloc(dev);
+                //memset(realBlk, 0, 1024);
+                indirBuff[lblk - 12] = realBlk;
+                put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
+            }
+            // //indir blocks hasn't been touched.
+            // if(!indirFlag){
+            //     //grabbed the single indirect and make it physical
+            //     get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
+            //     indirFlag = 1;
+            // }
+            // indirect = (int *)tempbuf;
+            // realBlk = *(indirect + (lblk - 12));
         }
         //double indirect:
         else{
             //getting block for the fourteenth block
-            if(!dblIndirect){
-                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], dblinderBuff);
-                dblIndirect = 1; //don't need to go here now, already grabbed it in dblkbuf'
+            if(running->fd[fdNum]->mptr->INODE.i_block[13] == 0){
+                running->fd[fdNum]->mptr->INODE.i_block[13] = balloc(dev);
+                //memset(running->fd[fdNum]->mptr->INODE.i_block[13], 0, BLKSIZE);
             }
-            //grab the first 13 and have this be a position in the blocks;
-            dblIndirect = (long *)dblinderBuff;
-            if(secondLevel != *(dblIndirect + ((lblk - 268)/256))){
-                secondLevel = *(dblIndirect+((lblk - 268)/256)); //grab that avialable block to second level;
-                get_block(running->fd[fdNum]->mptr->dev, secondLevel, indirBuff);
+            get_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
+            lblk = lblk - (12+256);
+            secondLevel = db1[lblk/256];
+            if(secondLevel == 0){
+                secondLevel = balloc(dev);
+                db1[lblk/256] = secondLevel;
+                //memset(secondLevel, 0, 1024);
+                put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
             }
-            indirect = (long *)indirBuff;
-            realBlk = *(indirect) + ((lblk - 268) % 256); //kinda like mailman, make that block given a real block/physical block
+
+            get_block(dev, secondLevel, db2);
+
+            realBlk = db2[lblk % 2];
+
+            if(realBlk == 0){
+                realBlk = balloc(dev);
+                //memset(realBlk, 0, BLKSIZE);
+                db2[lblk%256] = realBlk;
+                put_block(dev, secondLevel, db2);
+            }
+            // if(!dblFlag){
+            //     get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], dblinderBuff);
+            //     dblFlag = 1; //don't need to go here now, already grabbed it in dblkbuf'
+            // }
+            // //grab the first 13 and have this be a position in the blocks;
+            // dblIndirect = (int *)dblinderBuff;
+            // if(secondLevel != *(dblIndirect + ((lblk - 268)/256))){
+            //     secondLevel = *(dblIndirect+((lblk - 268)/256)); //grab that avialable block to second level;
+            //     get_block(running->fd[fdNum]->mptr->dev, secondLevel, indirBuff);
+            // }
+            // indirect = (int *)tempbuf;
+            // realBlk = *(indirect) + ((lblk - 268) % 256); //kinda like mailman, make that block given a real block/physical block
         }
         //now that we got all sof the blocks handled,
         //write to the data block:
-        printf("printhere?\n");
         get_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);
         
         cp = wbuf+startByte;

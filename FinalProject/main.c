@@ -131,7 +131,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
        myRead(atoi(pathname),readBuf, atoi(pathname2));
      }
      if(strcmp(cmd,"write")==0){
-       mywrite(atoi(pathname),writeBuf, atoi(pathname2));
+       write_file(atoi(pathname),pathname2);
      }
      if (strcmp(cmd,"creat")==0) {
        creat_file(pathname);
