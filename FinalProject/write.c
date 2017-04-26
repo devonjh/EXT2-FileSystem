@@ -6,28 +6,43 @@
 #include "mkdir_creat.c"
 #include "link.c"
 
+/*  int write_file()
+  1. Preprations:
+     ask for a fd   and   a text string to write;
+
+  2. verify fd is indeed opened for WR or RW or APPEND mode
+
+  3. copy the text string into a buf[] and get its length as nbytes.
+
+     return(mywrite(fd, buf, nbytes));
+*/
+int write_file(int fdNum, char *outputS){
+    char stringout[BLKSIZE];
+    int len;
+    //verify if its opened for WR RW or AP:
+    if(running->fd[fdNum]->mode == 0){
+        printf("Not opened for WR, RW or AP.\n");
+        return -1;
+    }
+    //set up the writing:
+    strcpy(outputS, stringout);
+    len = strlen(outputS);
+    return mywrite(fdNum, buf, len);
+}
+
 int mywrite(int fdNum, char *tempbuf, int nbytes){
     //preps: Ask for fd and writemode.
     //fd has to be open for WR or RW or APD
     //cpy text string to buf[] with len;(oftp)
 
     //mywrite(fd,buf,nbytes)
-    int count = 0;
-    int available;
-    long lblk;
-    int startByte;
-    long realBlk;
-    int remain;
-    int indirFlag;
-    int dblFlag;
-    long *indirect;
-    long *dblIndirect;
-    long secondLevel;
+    int count = 0, available, lblk, startByte, realBlk, remain;
+    int indirFlag, dblFlag;
+    int *indirect, *dblIndirect, secondLevel;
     char *cq = tempbuf;
     char *cp;
-    char indirBuff[BLKSIZE];
-    char dblinderBuff[BLKSIZE];
-    char wbuf[BLKSIZE];
+    char indirBuff[BLKSIZE], dblinderBuff[BLKSIZE];
+      char wbuf[BLKSIZE];
 
     memset(&wbuf[0], 0, sizeof(wbuf));
     //check if avaialbe for WR RW APD:

@@ -61,7 +61,6 @@ int rmdir(char *pathname) {
 
     printf("Location found.\n");
 
-    //Check to make sure that there is nothing more than '.' and '..'
     get_block(running->cwd->dev, mip->INODE.i_block[0], buf);
     dp = (DIR *)buf;
     cp = buf;

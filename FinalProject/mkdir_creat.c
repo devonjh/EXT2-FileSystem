@@ -37,12 +37,12 @@ int mkkdir(char *pathname){
 
     printf("parent: %s   child: %s   \n", tempparent, tempchild);
     //still gotta verify if it exists in the parent directory lmao:
-    //search:
-    // if(search(pip,tempchild)!=0){
-    //     printf("Already exists. \n");
-    //     iput(pip);
-    //     return -1;
-    // }
+    search:
+    if(search(pip,tempchild)!=0){
+        printf("Already exists. \n");
+        iput(pip);
+        return -1;
+    }
     //run mymakedir which adds the actual file there:
     mymkdir(pip, tempchild);
 

@@ -1,14 +1,13 @@
 #ifndef ls_cd_pwd_c
 #define ls_cd_pwd_c
 
-#include "type.h"
 #include "util.c"
 
 int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code 
 {
   //WRITE C code for these:
   int iNum, i;
-  char tempName[128];
+  char tempName[BLKSIZE];
   MINODE *mip,*tempInode;
   char tempBuf[BLKSIZE];
   char *tempCP;
@@ -35,24 +34,46 @@ int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code
         return;
       }
 
-    get_block(dev, mip->INODE.i_block[0], tempBuf);
-    dp = (DIR *)tempBuf;
-    tempCP = tempBuf;
-    printf("Permissions\tiNum\trec_len\tname_len\tFile Name\n"); 
+    i = 0;
+    while (mip->INODE.i_block[i] != 0) {
+      get_block(dev, mip->INODE.i_block[0], tempBuf);
+      dp = (DIR *)tempBuf;
+      tempCP = tempBuf;
+      ip = (INODE *)tempCP;
+      printf("Permissions\tiNum\trec_len\tname_len\tFile Name\n"); 
 
-    while (tempCP < &tempBuf[BLKSIZE]) {
-      strncpy(tempName, dp->name, dp->name_len);
-      tempName[dp->name_len] = 0;   //get rid of null terminating character.
+      while (tempCP < &tempBuf[BLKSIZE]) {
+        
+        strncpy(tempName, dp->name, dp->name_len);
+        tempName[dp->name_len] = 0;   //get rid of null terminating character.
 
-      iNum = dp->inode;
-      printPermissions(iNum);
-      printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
+        iNum = dp->inode;
+        printPermissions(iNum);
 
-      tempCP += dp->rec_len;
-      dp = (DIR *)tempCP;
+        if (ip->i_mode == 0xA000) {
+          printf("INSIDE.\n");
+          MINODE *linkMIP = iget(mip->dev, dp->inode);
+          char linkName[BLKSIZE];
+          strcpy(linkName, (char *)linkMIP->INODE.i_block);
+          printf("\t%d\t%d\t%d\t\t%s->%s\n",dp->inode, dp->rec_len, dp->name_len, tempName,linkName);
+          iput(linkMIP);
+        }
+
+        else {
+          printf("\t%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
+        }
+
+        tempCP += dp->rec_len;
+        dp = (DIR *)tempCP;
+        ip = (INODE *)tempCP;
+      }
+     // iput(lsinode);
+      i++;
     }
+    iput(mip);
   }
 
+  
   else {
       iNum = getino(dev, pathname);
 
@@ -75,22 +96,26 @@ int ls(char *pathname)  // dig out YOUR OLD lab work for ls() code
         return;
       }
 
+      i = 0;
       //Location is a directory. Step into it and print contents.
-      get_block(dev, mip->INODE.i_block[0], tempBuf);
-      dp = (DIR *)tempBuf;
-      tempCP = tempBuf;
+      while (mip->INODE.i_block[i] != 0) {
+        get_block(dev, mip->INODE.i_block[i], tempBuf);
+        dp = (DIR *)tempBuf;
+        tempCP = tempBuf;
 
-      printf("iNum\trec_len\tname_len\tFile Name\n"); 
+        printf("iNum\trec_len\tname_len\tFile Name\n"); 
 
-      while (tempCP < &tempBuf[BLKSIZE]) {
-        strncpy(tempName, dp->name, dp->name_len);
-        tempName[dp->name_len] = 0;   //get rid of null terminating character.
+        while (tempCP < &tempBuf[BLKSIZE]) {
+          strncpy(tempName, dp->name, dp->name_len);
+          tempName[dp->name_len] = 0;   //get rid of null terminating character.
 
-        iNum = dp->inode;
-        printf("%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
+          iNum = dp->inode;
+          printf("%d\t%d\t%d\t\t%s\n",dp->inode, dp->rec_len, dp->name_len, tempName);
 
-        tempCP += dp->rec_len;
-        dp = (DIR *)tempCP;
+          tempCP += dp->rec_len;
+          dp = (DIR *)tempCP;
+        }
+        i++;
       }
       iput(mip);
   }
@@ -128,84 +153,47 @@ int chdir(char *pathname)
     }
 }    
  
-int pwd(){//: YOU WRITE CODE FOR THIS ONE!!!
-      int tempINum, i = 0, parentINum;
-      int blk, disp;
-      char *childName;
-      char *tempPath;
-      char *cp;
-      char fullPath[64] = "/";
-      char tempName[64];
-      MINODE *mip;
-      MINODE *origCWD;
-      char *pwdArray[8] = {""};
-      //running->cwd->inode search for ".." and get that in block ".." is a parent.
-      origCWD = running->cwd;
+int pwd(MINODE *mip, int childIno){
+  char pwdBuf[BLKSIZE];
+  char currName[64];
+  char *cp;    
+  MINODE *parentMIP;
+  int tempIno;
 
-      if (running->cwd->ino == 2) {
-        printf("PWD: /");
-        return;
-      }
+  memset(&pwdBuf[0], 0, sizeof(pwdBuf));
+  memset(&currName[0], 0, sizeof(currName));
 
-      i = 0;
-      while (running->cwd->ino != 2) {    //Continue traversing parent Inodes until root is reached.
-        memset(&tempName[0], 0, sizeof(tempName));
-        mip = iget(dev, running->cwd->ino);
-        get_block(dev, mip->INODE.i_block[0],buf);
-        dp = (DIR *)buf;
-        tempINum = dp->inode;
-        //printf("iNum: %d\n",tempINum);
+  if (mip->ino == root->ino) {
+    printf("/");
+  }
 
+  get_block(dev, mip->INODE.i_block[0], pwdBuf);
 
-        parentINum = search(mip, "..");   //Move to parent. 
-        //printf("parentINum: %d\n",parentINum);
+  dp = (DIR *)pwdBuf;                //set dp to '.'
+  cp = pwdBuf + dp->rec_len;         //move to '..'
+  dp = (DIR *)cp;
 
-        mip = iget(dev, parentINum);
-        get_block(dev, mip->INODE.i_block[0],buf);
-        dp = (DIR *)buf;
-        cp = buf;
+  if (mip->ino != root->ino) {        //Recursively go through parent Inodes until root is hit.
+    tempIno = dp->inode;
+    parentMIP = iget(running->cwd->dev, tempIno);
+    pwd(parentMIP, mip->ino);
+  }
 
-        while (cp < &buf[BLKSIZE]) {
-          //printf("\ndp->inode: %d\n",dp->inode);
-          //printf("tempINum: %d\n",tempINum);
-          //printf("current name: %s\n",dp->name);
-          if (dp->inode == tempINum) {
-            strncpy(tempName, dp->name,64);
-            //printf("tempName: %s\n",tempName);
-            printf("i: %d\n",i);
-            pwdArray[i] = tempName;
-            printf("tempName: %s\n",pwdArray[i]);
-            i++;
-            break;
-          }
+  if (childIno != 0) {
+    while (childIno != dp->inode) {     //Search block for current dir.
+      cp += dp->rec_len;
+      dp = (DIR *)cp;
+    }
 
-          cp += dp->rec_len;
-          dp = (DIR *)cp;
-          
-        }
+    //We have now found our desired dir.
+    strncpy(currName, dp->name, dp->name_len);
+    currName[dp->name_len] = '\0';
+    printf("%s/",currName);  
+  }
 
-        printf("pathArray[0]: %s\n",pwdArray[0]);
-        printf("loop.\n");
-        running->cwd = mip;
-      }    
-
-      //pwdArray[i] = 0;
-
-      i -= 1;
-      
-
-      printf("\n");
-      
-      while (i >= 0) {
-        printf("pwdArray[%d]: %s\n",i,pwdArray[i]);
-        i--;
-      }
-
-      running->cwd = origCWD;
-      printf("PWD:");
-      printf("%s\n",fullPath);
-      iput(mip);
+  return;
 }
+
 int quit()
 {
     /*
@@ -214,16 +202,16 @@ int quit()
           write its INODE back to disk; 
           if dirty, write it back out in disk
   }*/
-  for(int i = 0; i < NMINODE; i++){
-    if(minode[i].refCount > 0 && minode[i].dirty == 1){
-      minode[i].refCount = 1;
-      iput(&minode[i]);
+    for(int i = 0; i < NMINODE; i++){
+      if(minode[i].refCount > 0 && minode[i].dirty == 1){
+        minode[i].refCount = 1;
+        iput(&minode[i]);
+      }
     }
-  }
-
+  
   exit(1);  // terminate program
   return 0;
-  
 }
+
 
 #endif

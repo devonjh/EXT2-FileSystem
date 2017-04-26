@@ -97,7 +97,7 @@ main(int argc, char *argv[ ])   // run as a.out [diskname]
         chdir(pathname);
      }
      if (strcmp(cmd, "pwd")==0){
-        pwd(running->cwd);
+        pwd(running->cwd, 0);
      }
      if (strcmp(cmd, "mkdir")==0){
         printf("test");
