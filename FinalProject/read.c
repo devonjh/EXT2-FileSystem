@@ -1,6 +1,5 @@
-#ifndef TYPE_H
-#define TYPE_H
-
+#ifndef READ_C
+#define READ_C
 #include "type.h"
 
 int myRead(int fdNum, char *tempBuf, int nbytes) {
@@ -10,15 +9,19 @@ int myRead(int fdNum, char *tempBuf, int nbytes) {
     int startByte;
     long realBlk;
     int remaining;
-    int indirFlag;
-    int dblFlag;
+    int indir;
+    int *intp;
+    int dblOffset;
+    int remainingBlock;
+    int remainingBytes;
     long *indirect;
     long *dblIndirect;
     long secondLevel;
     char *cq;
     char *cp;
     char indirBuff[BLKSIZE];
-    char dblindirBuff[BLKSIZE];
+    char db1[BLKSIZE];
+    char db2[BLKSIZE];
 
     memset(&buf[0], 0, sizeof(buf));
     memset(&tempBuf[0], 0, sizeof(readBuf));
@@ -49,30 +52,32 @@ int myRead(int fdNum, char *tempBuf, int nbytes) {
         }
 
         else if ((lblk >= 12) && (lblk < 256 + 12)) {
-            if (!indirFlag) {                               //Only need to getblock once for indirect blocks.
-                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
+            /*if (!indirFlag) {                               //Only need to getblock once for indirect blocks.
+                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], indirBuff);
                 indirFlag = 1;
             }
 
             indirect = (long *)buf;
-            realBlk = *(indirect+(lblk-12));
+            realBlk = *(indirect+(lblk-12));*/
+
+            indir = lblk - 12;
+            get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], db1);
+            intp = &db1;
+            intp += indir;
+            realBlk = *intp;
         }
 
         else {
-            if (!dblIndirect) {                         //Only need to get_block for block 13 once.
-                get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], dblindirBuff);
-                dblIndirect = 1;
-            }
 
-            dblIndirect = (long *)buf;
-
-            if (secondLevel != *(dblIndirect+((lblk-268)/256))) {                 //Check if we need to change indirect blocks within the double indirect block.
-                secondLevel = *(dblIndirect+((lblk-268)/256));
-                get_block(running->fd[fdNum]->mptr->dev, secondLevel, indirBuff);
-            }
-
-            indirect = (long *)buf;
-            realBlk = *(indirect+((lblk-12)%256));
+            dblOffset = (lblk - 12 - 256) / 256;
+            secondLevel = (lblk - 12 - 256) % 256;
+            get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
+            intp = &db1;
+            intp += dblOffset;
+            get_block(running->fd[fdNum]->mptr->dev, *intp, db2);
+            intp = &db2;
+            intp += secondLevel;
+            realBlk = *intp;
         }
 
         get_block(running->cwd->dev, realBlk, tempBuf);
@@ -83,7 +88,36 @@ int myRead(int fdNum, char *tempBuf, int nbytes) {
         //printf("remaining: %d\n", remaining);
 
         while (remaining > 0) {
-            *cq++ = *cp++;
+            remainingBlock = BLKSIZE - (running->fd[fdNum]->offset % BLKSIZE);
+            remainingBytes = remaining;
+
+            if (remainingBlock <= remainingBytes) {
+                strncpy(cq, cp, remainingBlock);
+                running->fd[fdNum]->offset += remainingBlock;
+                count += remainingBlock;
+                avail -= remainingBlock;;
+                nbytes -= remainingBlock;
+                remaining -= remainingBlock;
+
+                if (nbytes <= 0 || avail <= 0) {
+                    break;
+                }
+            }
+
+            if (remainingBlock > remainingBytes) {
+                strncpy(cq, cp, remainingBytes);
+                running->fd[fdNum]->offset += remainingBytes;
+                count += remainingBytes;
+                avail -= remainingBytes;
+                nbytes -= remainingBytes;
+                remaining -= remainingBytes;
+
+                if (nbytes <= 0 || avail <= 0) {
+                    break;
+                }
+            }
+
+            /**cq++ = *cp++;
             running->fd[fdNum]->offset++;
             count++;
             avail--;
@@ -91,10 +125,8 @@ int myRead(int fdNum, char *tempBuf, int nbytes) {
             remaining--;
             if (nbytes <= 0 || avail <= 0) {
                 break;
-            }
+            }*/
         }
-
-        //printf("%s",buf);
     }
 
     //printf("\n********************************************************************************************\n");
@@ -110,14 +142,15 @@ int catFile(char *pathname) {
     int n;
     int i;
     char catBuf[BLKSIZE];
+
     tempFD = openFile(pathname, 0);             //Open desired file for read.
     
-    printf("\n===============File Contents===============\n");
+    printf("\n===============File Contents===============\n\n");
 
     while ((n = myRead(tempFD, catBuf, BLKSIZE)) > 0) {
         catBuf[n] = 0;
         //printf("%s",catBuf);
-        
+
         for(i = 0; i < BLKSIZE; i++) {
             if (catBuf[i] != NULL) {
                 putchar(catBuf[i]);
@@ -125,7 +158,7 @@ int catFile(char *pathname) {
         }
     }
 
-    printf("\n===========================================\n");
+    printf("\n\n===========================================\n");
 
     closeFile(tempFD);
 

@@ -76,15 +76,15 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
                 running->fd[fdNum]->mptr->INODE.i_block[12] = balloc(dev);
                 //memset(running->fd[fdNum]->mptr->INODE.i_block[12], 0, BLKSIZE);
             }
-            get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
-            realBlk = indirBuff[lblk - 12];
+            // get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
+            // realBlk = indirBuff[lblk - 12];
 
-            if(realBlk == 0){
-                realBlk = balloc(dev);
-                //memset(realBlk, 0, 1024);
-                indirBuff[lblk - 12] = realBlk;
-                //put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
-            }
+            // if(realBlk == 0){
+            //     realBlk = balloc(dev);
+            //     //memset(realBlk, 0, 1024);
+            //     indirBuff[lblk - 12] = realBlk;
+            //     //put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirBuff);
+            // }
             // //indir blocks hasn't been touched.
             // if(!indirFlag){
             //     //grabbed the single indirect and make it physical
@@ -93,34 +93,49 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
             // }
             // indirect = (int *)tempbuf;
             // realBlk = *(indirect + (lblk - 12));
+            int indirblk = lblk - 12, indpostion;
+            int indirbuf[256];
+            get_block(dev, running->fd[fdNum]->mptr->INODE.i_block[12], indirbuf);
+            int *intpointer = &indirbuf;
+            intpointer += indirblk;
+            realBlk = *intpointer;
         }
         //double indirect:
         else{
-            //getting block for the fourteenth block
-            if(running->fd[fdNum]->mptr->INODE.i_block[13] == 0){
-                running->fd[fdNum]->mptr->INODE.i_block[13] = balloc(dev);
-                //memset(running->fd[fdNum]->mptr->INODE.i_block[13], 0, BLKSIZE);
-            }
+            // //getting block for the fourteenth block
+            // if(running->fd[fdNum]->mptr->INODE.i_block[13] == 0){
+            //     running->fd[fdNum]->mptr->INODE.i_block[13] = balloc(dev);
+            //     //memset(running->fd[fdNum]->mptr->INODE.i_block[13], 0, BLKSIZE);
+            // }
+            int firstdb = (lblk - 12 - 256) / 256;
+            int dboffst = (lblk - 12 - 256) % 256;
             get_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
-            lblk = lblk - (12+256);
-            secondLevel = db1[lblk/256];
-            if(secondLevel == 0){
-                secondLevel = balloc(dev);
-                db1[lblk/256] = secondLevel;
-                //memset(secondLevel, 0, 1024);
-                //put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
-            }
+            int *intpointer = &db1;
+            intpointer += firstdb;
+            get_block(dev, *intpointer, db2);
+            intpointer = &db2;
+            intpointer += dboffst;
+            realBlk = *intpointer;
+            // get_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
+            // lblk = lblk - (12+256);
+            // secondLevel = db1[lblk/256];
+            // if(secondLevel == 0){
+            //     secondLevel = balloc(dev);
+            //     db1[lblk/256] = secondLevel;
+            //     //memset(secondLevel, 0, 1024);
+            //     //put_block(dev, running->fd[fdNum]->mptr->INODE.i_block[13], db1);
+            // }
 
-            get_block(dev, secondLevel, db2);
+            // get_block(dev, secondLevel, db2);
 
-            realBlk = db2[lblk % 2];
+            // realBlk = db2[lblk % 2];
 
-            if(realBlk == 0){
-                realBlk = balloc(dev);
-                //memset(realBlk, 0, BLKSIZE);
-                db2[lblk%256] = realBlk;
-                //put_block(dev, secondLevel, db2);
-            }
+            // if(realBlk == 0){
+            //     realBlk = balloc(dev);
+            //     //memset(realBlk, 0, BLKSIZE);
+            //     db2[lblk%256] = realBlk;
+            //     //put_block(dev, secondLevel, db2);
+            // }
             // if(!dblFlag){
             //     get_block(running->fd[fdNum]->mptr->dev, running->fd[fdNum]->mptr->INODE.i_block[13], dblinderBuff);
             //     dblFlag = 1; //don't need to go here now, already grabbed it in dblkbuf'
@@ -137,7 +152,7 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
         //now that we got all sof the blocks handled,
         //write to the data block:
         get_block(running->fd[fdNum]->mptr->dev, realBlk, wbuf);
-        
+        cq = tempbuf;
         cp = wbuf+startByte;
         remain = BLKSIZE - startByte;
         while(remain > 0){
@@ -149,32 +164,12 @@ int mywrite(int fdNum, char *tempbuf, int nbytes){
             if(nbytes <= 0)
                 break;
         }
-        //lets put everything in aka nbytes:
-        // if(remain > nbytes){
-        //     memcpy(cp, tempbuf, nbytes);
-        //     //strcat(wbuf, tempbuf);
-        //     //nbytes = 0;
-        //     running->fd[fdNum]->offset += nbytes;
-        //     offsetbig += nbytes;
-        //     //put_block(dev, realBlk, wbuf);
-        // }
-        // else{
-        //     memcpy(cp, tempbuf, remain);
-        //     nbytes -= remain;
-        //     running->fd[fdNum]->offset += remain;
-        //     offsetbig += nbytes;
-            
-        // }
-        // if(running->fd[fdNum]->offset > running->fd[fdNum]->mptr->INODE.i_size)
-        //     running->fd[fdNum]->mptr->INODE.i_size = running->fd[fdNum]->offset;
-        //printf("wbuf: %s", wbuf);
         put_block(dev, realBlk, wbuf);
     }
     // if(offsetbig > 0){
     //     put_block(dev, realBlk, wbuf);
     // }
     running->fd[fdNum]->mptr->dirty = 1;
-    iput(running->fd[fdNum]->mptr);
     printf("Write %d char into file descriptor fd = %d\n", offsetbig, fd);
     return nbytes;
 }   
@@ -332,4 +327,47 @@ int mv(char *src, char *dest){
 //     return realblk;
 //     //returns a bno
 // }
+
+        //optimized:
+        // while(remain > 0){
+        //     int rmblk = BLKSIZE - (running->fd[fdNum]-> offset & BLKSIZE);
+        //     int rmbyte = remain;
+        //     if(rmblk <= rmbyte){
+        //         strncat(cp, cq,rmblk);
+        //         nbytes -= rmblk;
+        //         remain -= rmblk;
+        //         count += rmblk;
+        //         running->fd[fdNum]->offset += rmblk;
+                
+        //     }
+        //     else{
+        //         strncat(cp, cq, rmbyte);
+        //         nbytes -= rmbyte;
+        //         remain -= rmbyte;
+        //         count += rmbyte;
+        //         running->fd[fdNum]->offset += rmbyte;
+        //     }
+
+        //     if(running->fd[fdNum]->offset > running->fd[fdNum]->mptr->INODE.i_size)
+        //         running->fd[fdNum]->mptr->INODE.i_size = running->fd[fdNum]->offset;
+        // }
+        //lets put everything in aka nbytes:
+        // if(remain > nbytes){
+        //     memcpy(cp, tempbuf, nbytes);
+        //     //strcat(wbuf, tempbuf);
+        //     //nbytes = 0;
+        //     running->fd[fdNum]->offset += nbytes;
+        //     offsetbig += nbytes;
+        //     //put_block(dev, realBlk, wbuf);
+        // }
+        // else{
+        //     memcpy(cp, tempbuf, remain);
+        //     nbytes -= remain;
+        //     running->fd[fdNum]->offset += remain;
+        //     offsetbig += nbytes;
+            
+        // }
+        // if(running->fd[fdNum]->offset > running->fd[fdNum]->mptr->INODE.i_size)
+        //     running->fd[fdNum]->mptr->INODE.i_size = running->fd[fdNum]->offset;
+        //printf("wbuf: %s", wbuf);
 #endif
