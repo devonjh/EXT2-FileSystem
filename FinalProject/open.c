@@ -20,6 +20,8 @@ int openFile(char *pathname, int mode){
         dev = running->cwd->dev;
     }
 
+    printf("openFile executing.\n");
+
     //grab its inode using the pathname and its MINODE;
     iNum = getino(dev, pathname);
     mip = iget(dev, iNum);
